@@ -1,0 +1,5 @@
+.vscode/
+data/
+dataset/
+src/communicator/*.btr
+src/utils/hprg/*.npy

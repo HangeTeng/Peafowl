@@ -65,7 +65,7 @@ class HDF5Dataset(Dataset):
         id = self.ids[index] if self.with_ids else None
         return data, target, id
 
-    def add(self, data, targets, ids = None):
+    def add(self, data, targets = None, ids = None):
         self.data.resize((self.data.shape[0] + data.shape[0], ) +
                          data.shape[1:])
         self.data[-data.shape[0]:] = data
@@ -177,7 +177,7 @@ if __name__ == '__main__':
 
     if mnist_test:
         train_data, train_targets = preprocess_mnist()
-        file_path = "../data/MNIST_train.hdf5"
+        file_path = "../../data/MNIST_train.hdf5"
         dataset = HDF5Dataset(file_path=file_path)
         print(dataset.data.shape)
         print(dataset.data[...])
@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     if cifar10_test:
         train_data, train_targets = preprocess_cifar()
-        file_path = "../data/CIFAR10_train.hdf5"
+        file_path = "../../data/CIFAR10_train.hdf5"
         dataset = HDF5Dataset(file_path=file_path)
         print(dataset.data.shape)
         print(dataset.data[...])
@@ -197,7 +197,7 @@ if __name__ == '__main__':
 
     if lsvm_test:
         train_data, train_targets = preprocess_cifar()
-        file_path = "../data/SVM_{}_{}.hdf5".format(examples, features)
+        file_path = "../../data/SVM_{}_{}.hdf5".format(examples, features)
         dataset = HDF5Dataset(file_path=file_path)
         print(dataset.data.shape)
         print(dataset.data[...])
@@ -206,7 +206,7 @@ if __name__ == '__main__':
         dataset.close()
 
     if lsvm_gen:
-        file_path = "../data/SVM_{}_{}.hdf5".format(examples, features)
+        file_path = "../../data/SVM_{}_{}.hdf5".format(examples, features)
         print("generating dataset in file: {}".format(file_path))
         dataset = HDF5Dataset.empty(file_path=file_path,
                               data_shape=(features, ),
@@ -222,13 +222,14 @@ if __name__ == '__main__':
         dataset.close()
 
     if lsvm_split:
-        file_path = "../data/SVM_{}_{}.hdf5".format(examples, features)
+        file_path = "../../data/SVM_{}_{}.hdf5".format(examples, features)
         dataset = HDF5Dataset(file_path=file_path)
         slice_features = features // nodes
         for i in range(nodes):
-            sub_file_path = "../data/SVM_{}_{}_{}-{}.hdf5".format(
+            sub_file_path = "../../data/SVM_{}_{}_{}-{}.hdf5".format(
                 examples, features, i, nodes)
             indices = random.sample(range(examples), sub_examples)
+            print(indices)
             _slice = slice(slice_features * i, slice_features * (i + 1))
             save_subset_h5(dataset=dataset,file_path=sub_file_path,indices=indices,slice=_slice, with_targets=(i == 0), dtype=np.float32)
 

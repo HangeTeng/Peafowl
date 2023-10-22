@@ -40,7 +40,7 @@ class Receiver(SSS.OSNReceiver):
 if __name__ == "__main__":
     import multiprocessing
 
-    size = 3
+    size = 60
     p =1<<128
     num_threads = 1
     Sip = "127.0.0.1:12222"

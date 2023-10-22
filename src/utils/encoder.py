@@ -17,6 +17,11 @@ class FixedPointEncoder:
         float_array = int_array / self.scale
         return float_array
 
+def mod_range(a, p):
+    "convert to  [-p/2, p/2 - 1]"
+    r = (a % p) - p // 2
+    return r
+
 if __name__ == "__main__":
     encoder = FixedPointEncoder(precision_bits=16)
 

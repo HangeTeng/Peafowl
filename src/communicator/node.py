@@ -5,9 +5,11 @@ if __name__ == "__main__":
 from mpi4py import MPI
 import numpy as np
 import time
+import random
 
 from src.utils.h5dataset import HDF5Dataset
 from src.communicator.STComm import Sender, Receiver
+
 
 
 def timer(func):
@@ -73,7 +75,8 @@ class Node():
         self.totalDataSent += sys.getsizeof(send_data) / 1024 / 1024
         self.totalDataRecv += sys.getsizeof(recv_data) / 1024 / 1024
         return recv_data
-
+    
+    # @timer
     def STsend(self,
                size,
                permute,
@@ -96,6 +99,7 @@ class Node():
                         num_threads=num_threads)
         return result
 
+    # @timer
     def STrecv(self,
                size,
                sender=None,
@@ -114,7 +118,7 @@ class Node():
                             Sip=Sip,
                             ot_type=ot_type,
                             num_threads=num_threads)
-        return result
+        return result[0],result[1]
 
     def __split_array(self, arr, split_num=2):
         shape = arr.shape
@@ -142,6 +146,38 @@ class Node():
         comm.Recv(_data, source=source, tag=tag)
         self.totalDataRecv += sys.getsizeof(_data) / 1024 / 1024
         self.__combine_array(data, _data)
+
+    def find_intersection_indices(self, arrays_list):
+        if len(arrays_list) < 2:
+            return []
+
+        intersection_set = set(arrays_list[0])
+        for arr in arrays_list[1:]:
+            intersection_set &= set(arr)
+
+        intersection_list = list(intersection_set)
+        random.seed(1) #! test
+        random.shuffle(intersection_list)
+        # print(intersection_list)
+
+        length_intersection = len(intersection_list)
+
+        intersection_indices = []
+        for arr in arrays_list:
+            indices = []
+            if isinstance(arr, list):
+                for intersection_element in intersection_list:
+                    indices.append(arr.index(intersection_element))
+            elif isinstance(arr, np.ndarray):
+                for intersection_element in intersection_list:
+                    indices.extend(list(np.where(arr == intersection_element)[0]))
+            all_indices = list(range(len(arr)))
+            non_common_indices = list(set(all_indices) - set(indices))    
+            random.shuffle(non_common_indices)
+            indices = indices + non_common_indices
+            intersection_indices.append(indices)
+
+        return intersection_indices, length_intersection
 
 
 if __name__ == "__main__":
@@ -181,35 +217,38 @@ if __name__ == "__main__":
                                         targets_shape=(),
                                         dtype=np.int64)
 
+
+
         node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
 
     print("start testing...")
 
-    # # 测试 gather 数据
-    # data_to_gather = np.array([10]*size) + global_rank
-    # gathered_data = node.gather(data_to_gather, server_rank)
-    # if is_server:
-    #     print(f"Gathered data: {gathered_data}")
+    size = 4
+    # gather
+    data_to_gather = np.array([10]*size) + global_rank
+    gathered_data = node.gather(data_to_gather, server_rank)
+    if is_server:
+        print(f"Gathered data: {gathered_data}")
 
-    # # 测试 scatter 数据
-    # data_to_scatter = None
-    # if is_server:
-    #     data_to_scatter = np.array([100]*size) + global_rank
-    # received_data = node.scatter(data_to_scatter, server_rank)
-    # print(f"Scattered data: {received_data}")
+    # scatter
+    data_to_scatter = None
+    if is_server:
+        data_to_scatter = np.array([100]*size) + global_rank
+    received_data = node.scatter(data_to_scatter, server_rank)
+    print(f"Scattered data: {received_data}")
 
-    # # 测试 alltoall 数据
-    # data_to_exchange = np.array([1000]*size) + global_rank
-    # exchanged_data = node.alltoall(data_to_exchange)
-    # print(f"Exchanged data: {exchanged_data}")
+    # alltoall
+    data_to_exchange = np.array([1000]*size) + global_rank
+    exchanged_data = node.alltoall(data_to_exchange, in_clients=True)
+    print(f"Exchanged data: {exchanged_data}")
 
-    data_size = 60000
+    data_size = 6
     permute = range(data_size - 1, -1, -1)
 
     Sip = "127.0.0.1:12222"
     STData = None
     # for j in range(comm_size - 1):
-    for j in range(100):
+    for j in range(1):
         for i in range(comm_size - 1):
             if is_server:
                 STData = node.STsend(size=data_size,
@@ -218,15 +257,17 @@ if __name__ == "__main__":
                                     tag=j,
                                     Sip=Sip)
             elif global_rank == i:
-                STData = node.STrecv(size=data_size,
+                STData,STData2 = node.STrecv(size=data_size,
                                     sender=server_rank,
                                     tag=j,
                                     Sip=Sip)
-            print(str(i)+"_"+str(j)+" complete!")
+            # print(str(i)+"_"+str(j)+" complete!")
     if is_server:
         print("rank " +str(global_rank) +" sent: "+ str(node.STSender.getTotalDataSent()))
-        print("rank " +str(global_rank) +" recv:"+ str(node.STSender.getTotalDataRecv()))
+        print("rank " +str(global_rank) +" recv: "+ str(node.STSender.getTotalDataRecv()))
     else:
         print("rank " +str(global_rank) +" sent: "+ str(node.STRecver.getTotalDataSent()))
-        print("rank " +str(global_rank) +" recv:"+ str(node.STRecver.getTotalDataRecv()))
-    # print(STData)
+        print("rank " +str(global_rank) +" recv: "+ str(node.STRecver.getTotalDataRecv()))
+    
+
+

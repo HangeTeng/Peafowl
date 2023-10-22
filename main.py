@@ -34,6 +34,8 @@ if __name__ == "__main__":
     precision_bits = 16
     encoder = FixedPointEncoder(precision_bits=precision_bits)
 
+    shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP)
+
     global_comm = MPI.COMM_WORLD
     global_rank = global_comm.Get_rank()
     global_size = global_comm.Get_size()
@@ -97,7 +99,6 @@ if __name__ == "__main__":
     if is_server:
         pass
     else:
-        shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP)
         seeds = [(None if i == client_rank else np.array(
             [[k + j * 10 + i * 100 + client_rank * 1000 for k in range(n)]
              for j in range(sub_examples)]))
@@ -190,6 +191,7 @@ if __name__ == "__main__":
     if is_server:
         pass
     else:
+        # print(seeds)
         seeds_exchanged = node.alltoall(seeds, in_clients=True)
         # print(seeds_exchanged)
 
@@ -212,7 +214,7 @@ if __name__ == "__main__":
                     delta[:, k] = _delta
                 deltas.append(delta)
             all_deltas.append(deltas)       
-        # print(deltas)
+        # print(all_deltas[0][2])
     else:
         a_s = []
         b_s = []
@@ -229,8 +231,9 @@ if __name__ == "__main__":
                 b[:,k] = _b
             a_s.append(a)
             b_s.append(b)
-        # permutes = [[4, 0, 3, 1, 2], [4, 3, 0, 2, 1], [1, 3, 4, 0, 2]]
-        # print((a[permutes[global_rank]]-b)%(2**128))
+        permutes = [[4, 0, 3, 1, 2], [4, 3, 0, 2, 1], [1, 3, 4, 0, 2]]
+        # if global_rank == 0:
+            # print((a_s[2][permutes[2]]-b_s[2])%(2**128))
         
     # permute and share
     print("permute and share...")
@@ -252,11 +255,98 @@ if __name__ == "__main__":
                     continue
                 seeds_share_gather[i][j] = (seeds_share_gather[i][j][permutes[j]] + all_deltas[i][j]) % q
         seed1s_s = seeds_share_gather
+        # print(seed1s_s[0])
     else:
         seed2s = b_s
-
-    # tgt dataset
+        # if global_rank == 0:
+            # print(seed2s)
     
+
+    if is_server:
+        pass
+    else:
+        permute_length = None
+    permute_length = global_comm.bcast(permute_length, root = server_rank) # to make into node
+    # print(permute_length)
+    
+    # tgt dataset server send
+    round_inter = math.ceil(permute_length / chunk)
+    if is_server:
+        for rank in range(client_size):
+            with_targets = (rank == targets_rank)
+
+            data_to_client = np.empty((0, sub_features), dtype=np.int64)
+            targets_to_client = np.empty(
+                (0, ), dtype=np.int64) if with_targets else None
+            
+            for i in range(round_inter):
+                for j in range(chunk):
+                    index = i * chunk + j
+                    if index >= permute_length:
+                        break
+                    perm_index = permutes[rank][index]
+                    
+
+                    data = temp_dataset[rank].data[perm_index]
+                    target = temp_dataset[rank].targets[perm_index].reshape((1, )) if with_targets else None
+                    for k in range(client_size):
+                        if k == rank:
+                            continue
+                        output_prg = shprg.genRandom(seed1s_s[k][rank][index])
+                        data = data + output_prg[:sub_features]
+                        target = (target +
+                                  output_prg[sub_features:m]) if with_targets else None
+                    data = mod_range(data, p).astype(np.int64).reshape(
+                    (1, sub_features))
+                    target = (mod_range(target, p).astype(np.int64)).reshape(
+                    (1, )) if with_targets else None
+                    data_to_client = np.concatenate((data_to_client, data), axis=0)
+                    if with_targets:
+                        targets_to_client = np.concatenate(
+                            (targets_to_client, target), axis=0)
+                node.send((data_to_client, targets_to_client),
+                      dest=rank,
+                      tag=i)
+                data_to_client = np.empty((0, sub_features), dtype=np.int64)
+                targets_to_client = np.empty(
+                    (0, ), dtype=np.int64) if with_targets else None
+
+    else:
+        index = [0] * client_size
+        for i in range(round_inter):
+            recv = node.recv(source=server_rank, tag=i)
+            data = np.empty((len(recv[0]),0), dtype=np.int64)
+            targets = np.empty((0, ), dtype=np.int64)
+            for j in range(client_size):
+                if client_rank == j:
+                    data = np.concatenate((data, recv[0]), axis=1)
+                    targets = np.concatenate(
+                            (targets, recv[1]), axis=0) if j == targets_rank else targets
+                    # print(targets)
+                    continue
+                _data = np.empty((0, sub_features), dtype=np.int64)
+                _targets = np.empty((0, ), dtype=np.int64)
+                for k in range(len(recv[0])):
+                    output_prg = shprg.genRandom(seed2s[j][index[j]])
+                    output_prg = mod_range(output_prg, p).astype(np.int64).reshape(
+                    (1, m))
+                    # print(output_prg[:,:sub_features])
+                    _data = np.concatenate((_data,output_prg[:,:sub_features]), axis=0)
+                    _targets = np.concatenate((_targets,output_prg[0,sub_features:m]), axis=0) if j == targets_rank else None
+                    index[j] += 1
+                data = np.concatenate((data, _data), axis=1)
+                if _targets is None:
+                    pass
+                else:
+                    targets = np.concatenate((targets, _targets), axis=0)
+                # print(targets)
+            node.tgt_dataset.add(data=data,targets=targets)
+            print(tgt_dataset.data[:].tolist())
+                
+
+                
+
+        
        
             
             

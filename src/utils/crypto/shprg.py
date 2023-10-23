@@ -39,7 +39,7 @@ class SHPRG(object):
         if load_A == '':
             self.A = self.gen(self.shake(seedA, self.len_seedAES_bytes))
             self.A = np.array(self.A)
-            np.save('A_n{}_m{}_q{}_p{}.npy'.format(input,output,EQ,EP),self.A)
+            np.save('./data/prg/A_n{}_m{}_q{}_p{}.npy'.format(input,output,EQ,EP),self.A)
         else: 
             self.A = np.load(load_A, allow_pickle=True)
     

@@ -49,7 +49,11 @@ class HDF5Dataset(Dataset):
         return cls(file_path)
 
     @classmethod
-    def empty(cls, file_path: str, data_shape, targets_shape, dtype=np.float32):
+    def empty(cls,
+              file_path: str,
+              data_shape,
+              targets_shape,
+              dtype=np.float32):
         if any([data_shape is None, targets_shape is None]):
             raise ValueError("data_shape or targets_shape cannot be None")
         data = np.empty((0, ) + data_shape, dtype=dtype)
@@ -65,7 +69,7 @@ class HDF5Dataset(Dataset):
         id = self.ids[index] if self.with_ids else None
         return data, target, id
 
-    def add(self, data, targets = None, ids = None):
+    def add(self, data, targets=None, ids=None):
         self.data.resize((self.data.shape[0] + data.shape[0], ) +
                          data.shape[1:])
         self.data[-data.shape[0]:] = data
@@ -75,8 +79,9 @@ class HDF5Dataset(Dataset):
             self.targets[-targets.shape[0]:] = targets
         if ids is not None:
             self.ids.resize((self.ids.shape[0] + ids.shape[0], ) +
-                                targets.shape[1:])
+                            targets.shape[1:])
             self.ids[-ids.shape[0]:] = ids
+
     def close(self):
         self.file.close()
 
@@ -92,24 +97,34 @@ def get_subset(dataset, indices, slice, with_targets=False):
     return subset_data, subset_targets
 
 
-def save_subset_h5(dataset, file_path, indices, slice, with_targets=False,dtype=np.float32):
+def save_subset_h5(dataset,
+                   file_path,
+                   indices,
+                   slice,
+                   with_targets=False,
+                   dtype=np.float32):
     '''
     Extracts a subset of data into a HDF5 file.
     also save the indices.
     '''
     sub_dataset = HDF5Dataset.empty(file_path=file_path,
-                          data_shape=(slice_features, ),
-                          targets_shape=(),dtype=np.float32)
-    
+                                    data_shape=(slice_features, ),
+                                    targets_shape=(),
+                                    dtype=np.float32)
+    count = 0
     for index in indices:
         subset_data, subset_targets = get_subset(
             dataset, indices=[index], slice=slice,
             with_targets=with_targets)  # rank 0 get the targets
+        count += 1
+        if count % 100 == 0:
+            print("generating sub_dataset:%.2f%%" % (count * 100 / len(indices)))
         sub_dataset.add(data=subset_data, targets=subset_targets)
     sub_dataset.file.create_dataset("ids", data=indices)
     sub_dataset.close()
 
-def preprocess_mnist(data_dir='../data'):
+
+def preprocess_mnist(data_dir='./data'):
     train = datasets.MNIST(data_dir, train=True, download=True)
     test = datasets.MNIST(data_dir, download=True, train=False)
 
@@ -126,7 +141,7 @@ def preprocess_mnist(data_dir='../data'):
     return train_data_norm, train_targets
 
 
-def preprocess_cifar(data_dir='../data'):
+def preprocess_cifar(data_dir='./data'):
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
@@ -143,7 +158,7 @@ def preprocess_cifar(data_dir='../data'):
     return train_data_norm, train_targets
 
 
-def preprocess_linearSVM(features=6, examples=5,dtype=np.float32):
+def preprocess_linearSVM(features=6, examples=5, dtype=np.float32):
     # Set random seed for reproducibility
     np.random.seed(1)
     # Initialize x, y, w, b
@@ -151,8 +166,8 @@ def preprocess_linearSVM(features=6, examples=5,dtype=np.float32):
     b_true = np.random.randn(1).astype(dtype)
 
     np.random.seed()
-    # x = np.random.randn(examples, features)
-    x = np.array([[i*100+j for j in range(features)] for i in range(examples)]) # for test
+    x = np.random.randn(examples, features)
+    # x = np.array([[i*100+j for j in range(features)] for i in range(examples)]) # for test
     y = np.sign(np.dot(w_true, x.T) + b_true)
     return x, y
 
@@ -167,75 +182,67 @@ if __name__ == '__main__':
 
     lsvm_gen = True
     lsvm_split = True
-
-    examples = 6
-    features = 60
+    examples = 12000
+    features = 18000
     chunk = 100
-
     nodes = 3
-    sub_examples = 5
+    sub_examples = 10000
 
     if mnist_test:
         train_data, train_targets = preprocess_mnist()
         file_path = "../../data/MNIST_train.hdf5"
         dataset = HDF5Dataset(file_path=file_path)
-        print(dataset.data.shape)
-        print(dataset.data[...])
-        print(dataset.targets.shape)
-        print(dataset.targets[...])
         dataset.close()
 
     if cifar10_test:
         train_data, train_targets = preprocess_cifar()
         file_path = "../../data/CIFAR10_train.hdf5"
         dataset = HDF5Dataset(file_path=file_path)
-        print(dataset.data.shape)
-        print(dataset.data[...])
-        print(dataset.targets.shape)
-        print(dataset.targets[...])
         dataset.close()
 
     if lsvm_test:
         train_data, train_targets = preprocess_cifar()
         file_path = "../../data/SVM_{}_{}.hdf5".format(examples, features)
         dataset = HDF5Dataset(file_path=file_path)
-        print(dataset.data.shape)
-        print(dataset.data[...])
-        print(dataset.targets.shape)
-        print(dataset.targets[...])
         dataset.close()
 
     if lsvm_gen:
-        file_path = "../../data/SVM_{}_{}.hdf5".format(examples, features)
+        folder = "../../data/SVM_{}_{}".format(examples, features)
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         print("generating dataset in file: {}".format(file_path))
         dataset = HDF5Dataset.empty(file_path=file_path,
-                              data_shape=(features, ),
-                              targets_shape=(),dtype=np.float32)
+                                    data_shape=(features, ),
+                                    targets_shape=(),
+                                    dtype=np.float32)
         rounds = math.ceil(examples / chunk)
         for i in range(rounds):
             print("generating dataset:%.2f%%" % (i * 100 / rounds))
-            train_data, train_targets = preprocess_linearSVM(examples=examples,
+            train_data, train_targets = preprocess_linearSVM(examples=chunk,
                                                              features=features)
             dataset.add(data=train_data, targets=train_targets)
         print("generate dataset completed")
-        print(dataset.data)
         dataset.close()
 
     if lsvm_split:
-        file_path = "../../data/SVM_{}_{}.hdf5".format(examples, features)
+        folder = "../../data/SVM_{}_{}".format(examples, features)
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         dataset = HDF5Dataset(file_path=file_path)
         slice_features = features // nodes
         for i in range(nodes):
-            sub_file_path = "../../data/SVM_{}_{}_{}-{}.hdf5".format(
-                examples, features, i, nodes)
+            sub_file_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(
+                folder, examples, features, i, nodes)
             indices = random.sample(range(examples), sub_examples)
-            print(indices)
+            # print(indices)
             _slice = slice(slice_features * i, slice_features * (i + 1))
-            save_subset_h5(dataset=dataset,file_path=sub_file_path,indices=indices,slice=_slice, with_targets=(i == 0), dtype=np.float32)
-
-            d = HDF5Dataset(sub_file_path) # for test
-            print(d.ids[...])
-            print(d.targets[...])
-            print(d.data)
-            print(d.data[0])
+            save_subset_h5(dataset=dataset,
+                           file_path=sub_file_path,
+                           indices=indices,
+                           slice=_slice,
+                           with_targets=(i == 0),
+                           dtype=np.float32)
+            d = HDF5Dataset(sub_file_path)  # for test
         dataset.close()

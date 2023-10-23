@@ -1,4 +1,4 @@
-import sys
+import os,sys
 from mpi4py import MPI
 import numpy as np
 import math
@@ -11,14 +11,17 @@ from src.utils.encoder import FixedPointEncoder, mod_range
 
 if __name__ == "__main__":
     # dataset
-    examples = 6
-    features = 60
-    chunk = 100
+    examples = 12000
+    features = 18000
+    chunk = 10
     # sub_dataset
     nodes = 3
-    sub_examples = 5
-    sub_features = 20
+    sub_examples = 10000
+    sub_features = 6000
     targets_rank = 0
+    folder_path = "./data/SVM_{}_{}".format(
+                examples, features)
+
 
     secret_key = "secret_key"
 
@@ -52,12 +55,16 @@ if __name__ == "__main__":
         is_server = True
     server_rank = global_size - 1
 
+    
+
+    print("initialing...")
     #* initial node
     if is_server:
         node = Node(None, None, global_comm, client_comm)
         temp_dataset = []
+        temp_folder_path = folder_path + "/temp"
         for i in range(client_size):
-            temp_path = "./data/temp/SVM_{}_{}_{}-{}_temp.hdf5".format(
+            temp_path = "{}/SVM_{}_{}_{}-{}_temp.hdf5".format(temp_folder_path,
                 examples, features, i, nodes)
             temp_dataset.append(
                 HDF5Dataset.empty(file_path=temp_path,
@@ -65,17 +72,20 @@ if __name__ == "__main__":
                                   targets_shape=(),
                                   dtype=np.int64))
     else:
-        src_path = "./data/SVM_{}_{}_{}-{}.hdf5".format(
+        src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path,
             examples, features, global_rank, nodes)
         src_dataset = HDF5Dataset(file_path=src_path)
-        tgt_path = "./data/SVM_{}_{}_{}-{}_share.hdf5".format(
+        tgt_folder_path = folder_path + "/tgt"
+        tgt_path = "{}/SVM_{}_{}_{}-{}_tgt.hdf5".format(tgt_folder_path,
             examples, features, global_rank, nodes)
         tgt_dataset = HDF5Dataset.empty(file_path=tgt_path,
                                         data_shape=(features, ),
                                         targets_shape=(),
                                         dtype=np.int64)
         node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
-    # print("start testing...")
+    print("start testing...")
+
+    
 
     #* encrypted ID
     if is_server:
@@ -105,6 +115,7 @@ if __name__ == "__main__":
                  for i in range(client_size)]  #! test
         # seeds = [(None if i == client_rank else SHPRG.genMatrixAES128(seed=token_bytes(16),n=n,m=sub_examples,EQ=EQ) ) for i in range(client_size)]
 
+    # sys.exit()
     #* share
     print("share...")
     round_examples = math.ceil(sub_examples / chunk)
@@ -113,27 +124,6 @@ if __name__ == "__main__":
             for j in range(client_size):
                 recv = node.recv(source=j, tag=i)
                 temp_dataset[j].add(data=recv[0], targets=recv[1])
-        # test
-        # for client_rank_ in range(client_size):
-        #     shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP)
-        #     seeds = [(None if i == client_rank_ else np.array(
-        #     [[k + j * 10 + i * 100 + client_rank_ * 1000 for k in range(n)]
-        #      for j in range(sub_examples)])) for i in range(client_size)]
-        #     for i in range(sub_examples):
-        #         data = temp_dataset[client_rank_].data[i]
-        #         if i == 0 and client_rank_ == 0:  print(data)
-        #         for k in range(client_size):
-        #             if k == client_rank_:
-        #                 pass
-        #             else:
-        #                 output_prg = shprg.genRandom(seeds[k][i])
-        #                 # if i == 0 and client_rank_ == 0:  print(output_prg) #!test
-        #                 data = data + output_prg[:sub_features]
-        #         if i == 0 and client_rank_ == 0:
-        #             print(p)
-        #             print(mod_range(data,p=p))
-        #             print(data)
-
     else:
         with_targets = node.src_dataset.with_targets
 
@@ -144,6 +134,7 @@ if __name__ == "__main__":
         for i in range(round_examples):
             for j in range(chunk):
                 index = i * chunk + j
+                # print(index)
                 if index >= sub_examples:
                     break
                 data = encoder.encode(node.src_dataset.data[index])
@@ -156,35 +147,36 @@ if __name__ == "__main__":
                 for k in range(client_size):
                     if k == client_rank:
                         pass
-                    else:
-                        output_prg = shprg.genRandom(seeds[k][index])
+                #     else:
+                #         output_prg = shprg.genRandom(seeds[k][index])
 
-                        # if index == 0 and client_rank == 0: print(output_prg) #!test
+                #         # if index == 0 and client_rank == 0: print(output_prg) #!test
 
-                        data = data - output_prg[:sub_features]
+                #         data = data - output_prg[:sub_features]
 
-                        # if index == 0 and client_rank == 0: print(data) #!test
+                #         # if index == 0 and client_rank == 0: print(data) #!test
 
-                        target = (target -
-                                  output_prg[sub_features:sub_features +
-                                             1]) if with_targets else None
-                data = mod_range(data, p).astype(np.int64).reshape(
-                    (1, sub_features))
-                # if index == 0 and client_rank == 0: print(data) #!test
-                target = (mod_range(target, p).astype(np.int64)).reshape(
-                    (1, )) if with_targets else None
-                # print(data_to_server.shape)
-                # print(data.shape)
-                data_to_server = np.concatenate((data_to_server, data), axis=0)
-                if with_targets:
-                    targets_to_server = np.concatenate(
-                        (targets_to_server, target), axis=0)
+                #         target = (target -
+                #                   output_prg[sub_features:sub_features +
+                #                              1]) if with_targets else None
+                # data = mod_range(data, p).astype(np.int64).reshape(
+                #     (1, sub_features))
+                # # if index == 0 and client_rank == 0: print(data) #!test
+                # target = (mod_range(target, p).astype(np.int64)).reshape(
+                #     (1, )) if with_targets else None
+                # # print(data_to_server.shape)
+                # # print(data.shape)
+                # data_to_server = np.concatenate((data_to_server, data), axis=0)
+                # if with_targets:
+                #     targets_to_server = np.concatenate(
+                #         (targets_to_server, target), axis=0)
             node.send((data_to_server, targets_to_server),
                       dest=server_rank,
                       tag=i)
             data_to_server = np.empty((0, sub_features), dtype=np.int64)
             targets_to_server = np.empty(
                 (0, ), dtype=np.int64) if with_targets else None
+    sys.exit()
 
     # seeds share
     print("seeds share...")
@@ -235,6 +227,8 @@ if __name__ == "__main__":
         # if global_rank == 0:
             # print((a_s[2][permutes[2]]-b_s[2])%(2**128))
         
+
+
     # permute and share
     print("permute and share...")
     if is_server:

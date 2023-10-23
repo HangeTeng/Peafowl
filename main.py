@@ -2,22 +2,48 @@ import os,sys
 from mpi4py import MPI
 import numpy as np
 import math
-from secrets import token_bytes
+import time
+import threading
+
 from src.communicator.node import Node
 from src.utils.h5dataset import HDF5Dataset
 from src.utils.crypto.prf import PRF
 from src.utils.crypto.shprg import SHPRG
 from src.utils.encoder import FixedPointEncoder, mod_range
 
+
+import time
+
+class Timer:
+    def __init__(self):
+        self.time_points = {}
+        self.currentlabel = None
+
+    def set_time_point(self, label):
+        self.time_points[label] = time.time()
+        self.currentlabel = label
+
+    def __str__(self):
+        output = ""
+        previous_time = None
+
+        for label, timestamp in self.time_points.items():
+            if previous_time is not None:
+                elapsed_time = timestamp - previous_time
+                output += f"{label}: {elapsed_time:.4f} seconds\n"
+            previous_time = timestamp
+
+        return output
+
 if __name__ == "__main__":
     # dataset
-    examples = 12000
-    features = 18000
-    chunk = 10
+    examples = 60000
+    features = 60000
+    chunk = 100
     # sub_dataset
     nodes = 3
-    sub_examples = 10000
-    sub_features = 6000
+    sub_examples = examples * 5 // 6
+    sub_features = features // nodes
     targets_rank = 0
     folder_path = "./data/SVM_{}_{}".format(
                 examples, features)
@@ -55,9 +81,11 @@ if __name__ == "__main__":
         is_server = True
     server_rank = global_size - 1
 
+    timer = Timer()
+
     
 
-    print("initialing...")
+    # print("initialing...")
     #* initial node
     if is_server:
         node = Node(None, None, global_comm, client_comm)
@@ -83,9 +111,10 @@ if __name__ == "__main__":
                                         targets_shape=(),
                                         dtype=np.int64)
         node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
-    print("start testing...")
-
     
+    # print("start test...")
+    timer.set_time_point("start_test")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
 
     #* encrypted ID
     if is_server:
@@ -116,8 +145,12 @@ if __name__ == "__main__":
         # seeds = [(None if i == client_rank else SHPRG.genMatrixAES128(seed=token_bytes(16),n=n,m=sub_examples,EQ=EQ) ) for i in range(client_size)]
 
     # sys.exit()
+    
+    # print("psi completed!")
+    timer.set_time_point("server_psi")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
+
     #* share
-    print("share...")
     round_examples = math.ceil(sub_examples / chunk)
     if is_server:
         for i in range(round_examples):
@@ -147,39 +180,46 @@ if __name__ == "__main__":
                 for k in range(client_size):
                     if k == client_rank:
                         pass
-                #     else:
-                #         output_prg = shprg.genRandom(seeds[k][index])
+                    else:
+                        output_prg = shprg.genRandom(seeds[k][index])
 
-                #         # if index == 0 and client_rank == 0: print(output_prg) #!test
+                        # if index == 0 and client_rank == 0: print(output_prg) #!test
 
-                #         data = data - output_prg[:sub_features]
+                        data = data - output_prg[:sub_features]
 
-                #         # if index == 0 and client_rank == 0: print(data) #!test
+                        # if index == 0 and client_rank == 0: print(data) #!test
 
-                #         target = (target -
-                #                   output_prg[sub_features:sub_features +
-                #                              1]) if with_targets else None
-                # data = mod_range(data, p).astype(np.int64).reshape(
-                #     (1, sub_features))
-                # # if index == 0 and client_rank == 0: print(data) #!test
-                # target = (mod_range(target, p).astype(np.int64)).reshape(
-                #     (1, )) if with_targets else None
-                # # print(data_to_server.shape)
-                # # print(data.shape)
-                # data_to_server = np.concatenate((data_to_server, data), axis=0)
-                # if with_targets:
-                #     targets_to_server = np.concatenate(
-                #         (targets_to_server, target), axis=0)
+                        target = (target -
+                                  output_prg[sub_features:sub_features +
+                                             1]) if with_targets else None
+                data = mod_range(data, p).astype(np.int64).reshape(
+                    (1, sub_features))
+                # if index == 0 and client_rank == 0: print(data) #!test
+                target = (mod_range(target, p).astype(np.int64)).reshape(
+                    (1, )) if with_targets else None
+                # print(data_to_server.shape)
+                # print(data.shape)
+                data_to_server = np.concatenate((data_to_server, data), axis=0)
+                if with_targets:
+                    targets_to_server = np.concatenate(
+                        (targets_to_server, target), axis=0)
             node.send((data_to_server, targets_to_server),
                       dest=server_rank,
                       tag=i)
+            # print(node.get_size_recursive((data_to_server, targets_to_server)))
+            # print(node.get_size_recursive(data_to_server))
+            # print(node.get_size_recursive(targets_to_server))
+            
             data_to_server = np.empty((0, sub_features), dtype=np.int64)
             targets_to_server = np.empty(
                 (0, ), dtype=np.int64) if with_targets else None
-    sys.exit()
+
+    
+    # print("dataset sharing completed!")
+    timer.set_time_point("dset_share")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
 
     # seeds share
-    print("seeds share...")
     if is_server:
         pass
     else:
@@ -187,15 +227,17 @@ if __name__ == "__main__":
         seeds_exchanged = node.alltoall(seeds, in_clients=True)
         # print(seeds_exchanged)
 
+    # print("seeds sharing completed!")
+    timer.set_time_point("seed_share")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
+    
     # Share Traslation
-    print("Share Traslation...")
     if is_server:
-        all_deltas = []
-        for i in range(client_size):
-            deltas = []
+        all_deltas = [[] for _ in range(client_size)]
+        def STsend_thread(i):
             for j in range(client_size):
                 if i == j:
-                    deltas.append(None)
+                    all_deltas[i].append(None)
                     continue
                 delta = np.empty((sub_examples, n),dtype=object)
                 for k in range(n):
@@ -204,9 +246,15 @@ if __name__ == "__main__":
                                     recver=i,
                                     tag=j+k*100)
                     delta[:, k] = _delta
-                deltas.append(delta)
-            all_deltas.append(deltas)       
-        # print(all_deltas[0][2])
+                all_deltas[i].append(delta) 
+        threads = []
+        for i in range(client_size):
+            thread = threading.Thread(target=STsend_thread, args=(i,))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
+        # print(all_deltas)
     else:
         a_s = []
         b_s = []
@@ -227,10 +275,11 @@ if __name__ == "__main__":
         # if global_rank == 0:
             # print((a_s[2][permutes[2]]-b_s[2])%(2**128))
         
-
+    # print("Share Traslation completed!")
+    timer.set_time_point("share_tras")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
 
     # permute and share
-    print("permute and share...")
     if is_server:
         seeds_exchanged = None
     else:
@@ -254,19 +303,63 @@ if __name__ == "__main__":
         seed2s = b_s
         # if global_rank == 0:
             # print(seed2s)
-    
 
+    # print("permute and share completed!")
+    timer.set_time_point("perm_share")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
+
+    # share intersection size
     if is_server:
         pass
     else:
         permute_length = None
-    permute_length = global_comm.bcast(permute_length, root = server_rank) # to make into node
-    # print(permute_length)
+    permute_length = global_comm.bcast(permute_length, root = server_rank)
     
     # tgt dataset server send
     round_inter = math.ceil(permute_length / chunk)
     if is_server:
-        for rank in range(client_size):
+        {
+        # for rank in range(client_size):
+        #     with_targets = (rank == targets_rank)
+
+        #     data_to_client = np.empty((0, sub_features), dtype=np.int64)
+        #     targets_to_client = np.empty(
+        #         (0, ), dtype=np.int64) if with_targets else None
+            
+        #     for i in range(round_inter):
+        #         for j in range(chunk):
+        #             index = i * chunk + j
+        #             if index >= permute_length:
+        #                 break
+        #             perm_index = permutes[rank][index]
+                    
+
+        #             data = temp_dataset[rank].data[perm_index]
+        #             target = temp_dataset[rank].targets[perm_index].reshape((1, )) if with_targets else None
+        #             for k in range(client_size):
+        #                 if k == rank:
+        #                     continue
+        #                 output_prg = shprg.genRandom(seed1s_s[k][rank][index])
+        #                 data = data + output_prg[:sub_features]
+        #                 target = (target +
+        #                           output_prg[sub_features:m]) if with_targets else None
+        #             data = mod_range(data, p).astype(np.int64).reshape(
+        #             (1, sub_features))
+        #             target = (mod_range(target, p).astype(np.int64)).reshape(
+        #             (1, )) if with_targets else None
+        #             data_to_client = np.concatenate((data_to_client, data), axis=0)
+        #             if with_targets:
+        #                 targets_to_client = np.concatenate(
+        #                     (targets_to_client, target), axis=0)
+        #         node.send((data_to_client, targets_to_client),
+        #               dest=rank,
+        #               tag=i)
+        #         data_to_client = np.empty((0, sub_features), dtype=np.int64)
+        #         targets_to_client = np.empty(
+        #             (0, ), dtype=np.int64) if with_targets else None
+        }
+
+        def tgt_dataset_send(rank):
             with_targets = (rank == targets_rank)
 
             data_to_client = np.empty((0, sub_features), dtype=np.int64)
@@ -304,11 +397,18 @@ if __name__ == "__main__":
                 data_to_client = np.empty((0, sub_features), dtype=np.int64)
                 targets_to_client = np.empty(
                     (0, ), dtype=np.int64) if with_targets else None
-
+        threads = []
+        for rank in range(client_size):
+            thread = threading.Thread(target=tgt_dataset_send, args=(rank,))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
     else:
         index = [0] * client_size
         for i in range(round_inter):
             recv = node.recv(source=server_rank, tag=i)
+            # print(node.get_size_recursive(recv))
             data = np.empty((len(recv[0]),0), dtype=np.int64)
             targets = np.empty((0, ), dtype=np.int64)
             for j in range(client_size):
@@ -335,4 +435,12 @@ if __name__ == "__main__":
                     targets = np.concatenate((targets, _targets), axis=0)
                 # print(targets)
             node.tgt_dataset.add(data=data,targets=targets)
-            print(tgt_dataset.data[:].tolist())
+            # print(tgt_dataset.data[:].tolist())
+    
+    # print("tgt dataset completed!")
+    timer.set_time_point("tgt_final ")
+    print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
+
+    print(timer)
+
+    print("intersection size:{}".format(permute_length))

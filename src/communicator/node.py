@@ -35,45 +35,47 @@ class Node():
         self.totalDataRecv = 0
         self.STSender = Sender(4)
         self.STRecver = Receiver(4)
+    
+
 
     # @ timer
     def send(self, data, dest, tag=0, in_clients=False):
         comm = self.client_comm if in_clients else self.global_comm
         comm.send(data, dest=dest, tag=tag)
-        self.totalDataSent += sys.getsizeof(data) / 1024 / 1024
+        self.totalDataSent += self.get_size_recursive(data) / 1024 / 1024
 
     # @ timer
     def recv(self, source, tag=0, in_clients=False):
         comm = self.client_comm if in_clients else self.global_comm
         data = comm.recv(source=source, tag=tag)
-        self.totalDataRecv += sys.getsizeof(data) / 1024 / 1024
+        self.totalDataRecv += self.get_size_recursive(data) / 1024 / 1024
         return data
 
     def gather(self, send_data, root_rank, in_clients=False):
         comm = self.client_comm if in_clients else self.global_comm
         recv_data = comm.gather(send_data, root_rank)
         if root_rank == comm.Get_rank():
-            self.totalDataRecv += sys.getsizeof(recv_data) / 1024 / 1024
-            self.totalDataSent += sys.getsizeof(send_data) / 1024 / 1024
+            self.totalDataRecv += self.get_size_recursive(recv_data) / 1024 / 1024
+            self.totalDataSent += self.get_size_recursive(send_data) / 1024 / 1024
         else:
-            self.totalDataSent += sys.getsizeof(send_data) / 1024 / 1024
+            self.totalDataSent += self.get_size_recursive(send_data) / 1024 / 1024
         return recv_data
 
     def scatter(self, send_data, root_rank, in_clients=False):
         comm = self.client_comm if in_clients else self.global_comm
         recv_data = comm.scatter(send_data, root_rank)
         if root_rank == comm.Get_rank():
-            self.totalDataSent += sys.getsizeof(send_data) / 1024 / 1024
-            self.totalDataRecv += sys.getsizeof(recv_data) / 1024 / 1024
+            self.totalDataSent += self.get_size_recursive(send_data) / 1024 / 1024
+            self.totalDataRecv += self.get_size_recursive(recv_data) / 1024 / 1024
         else:
-            self.totalDataRecv += sys.getsizeof(recv_data) / 1024 / 1024
+            self.totalDataRecv += self.get_size_recursive(recv_data) / 1024 / 1024
         return recv_data
 
     def alltoall(self, send_data, in_clients=False):
         comm = self.client_comm if in_clients else self.global_comm
         recv_data = comm.alltoall(send_data)
-        self.totalDataSent += sys.getsizeof(send_data) / 1024 / 1024
-        self.totalDataRecv += sys.getsizeof(recv_data) / 1024 / 1024
+        self.totalDataSent += self.get_size_recursive(send_data) / 1024 / 1024
+        self.totalDataRecv += self.get_size_recursive(recv_data) / 1024 / 1024
         return recv_data
     
     # @timer
@@ -97,6 +99,8 @@ class Node():
                         Sip=Sip,
                         ot_type=ot_type,
                         num_threads=num_threads)
+        self.totalDataSent += self.STSender.getTotalDataSent() / 1024 / 1024
+        self.totalDataRecv += self.STSender.getTotalDataRecv() / 1024 / 1024
         return result
 
     # @timer
@@ -118,7 +122,25 @@ class Node():
                             Sip=Sip,
                             ot_type=ot_type,
                             num_threads=num_threads)
+        self.totalDataSent += self.STSender.getTotalDataSent() / 1024 / 1024
+        self.totalDataRecv += self.STSender.getTotalDataRecv() / 1024 / 1024
         return result[0],result[1]
+
+
+    def get_size_recursive(self, obj):
+        size = sys.getsizeof(obj)
+        
+        if isinstance(obj, (np.ndarray)):
+            return size + obj.nbytes
+        elif isinstance(obj, (int, float, bool, str)):
+            return size
+        elif isinstance(obj, (list, tuple)):
+            return size + sum(self.get_size_recursive(item) for item in obj)
+        elif isinstance(obj, dict):
+            return size + sum(self.get_size_recursive(key) + self.get_size_recursive(value) for key, value in obj.items())
+        
+        return size
+
 
     def __split_array(self, arr, split_num=2):
         shape = arr.shape
@@ -138,13 +160,13 @@ class Node():
         comm = self.client_comm if in_clients else self.global_comm
         _data = self.__split_array(data, split_num=split_num)
         comm.Send(_data, dest=dest, tag=tag)
-        self.totalDataSent += sys.getsizeof(_data) / 1024 / 1024
+        self.totalDataSent += self.get_size_recursive(_data) / 1024 / 1024
 
     def __Recv(self, data, source, tag=0, in_clients=False, split_num=2):
         comm = self.client_comm if in_clients else self.global_comm
         _data = np.empty(data.shape + (split_num, ), dtype=np.uint64)
         comm.Recv(_data, source=source, tag=tag)
-        self.totalDataRecv += sys.getsizeof(_data) / 1024 / 1024
+        self.totalDataRecv += self.get_size_recursive(_data) / 1024 / 1024
         self.__combine_array(data, _data)
 
     def find_intersection_indices(self, arrays_list):

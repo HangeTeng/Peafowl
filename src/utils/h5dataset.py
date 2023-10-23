@@ -101,6 +101,7 @@ def save_subset_h5(dataset,
                    file_path,
                    indices,
                    slice,
+                   slice_features,
                    with_targets=False,
                    dtype=np.float32):
     '''
@@ -242,6 +243,7 @@ if __name__ == '__main__':
                            file_path=sub_file_path,
                            indices=indices,
                            slice=_slice,
+                           slice_features = slice_features,
                            with_targets=(i == 0),
                            dtype=np.float32)
             d = HDF5Dataset(sub_file_path)  # for test

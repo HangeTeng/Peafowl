@@ -5,10 +5,10 @@ import numpy as np
 from src.utils.h5dataset import HDF5Dataset, preprocess_linearSVM, save_subset_h5
 
 def lsvm_gen_split(
-    examples = 60000,
+    examples = 6000,
     features = 6000,
     nodes = 3,
-    sub_examples = 50000,
+    sub_examples = 5000,
     chunk = 100,
     lsvm_gen = True,
     lsvm_split = True):
@@ -36,24 +36,31 @@ def lsvm_gen_split(
         file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         dataset = HDF5Dataset(file_path=file_path)
         slice_features = features // nodes
+        print(slice_features)
         for i in range(nodes):
             sub_file_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder, 
                 examples, features, i, nodes)
             indices = random.sample(range(examples), sub_examples)
             _slice = slice(slice_features * i, slice_features * (i + 1))
-            save_subset_h5(dataset=dataset,file_path=sub_file_path,indices=indices,slice=_slice, with_targets=(i == 0), dtype=np.float32)
+            save_subset_h5(dataset=dataset,file_path=sub_file_path,indices=indices,slice=_slice, slice_features = slice_features,with_targets=(i == 0), dtype=np.float32)
         dataset.close()
+    temp_folder_path = folder + "/temp"
+    if not os.path.exists(temp_folder_path):
+        os.mkdir(temp_folder_path)
+    tgt_folder_path = folder + "/tgt"
+    if not os.path.exists(tgt_folder_path):
+        os.mkdir(tgt_folder_path)
 
 if __name__ == '__main__':
     
-    for examples in [12000]:
-        sub_examples = examples * 5 / 6
+    for examples in [6000]:
+        sub_examples = examples * 5 // 6
         for features in [6000]:
             for nodes in [3]:
                 lsvm_gen_split(examples = examples,
-    features = 6000,
-    nodes = 3,
-    sub_examples = 50000)
+                    features = features,
+                    nodes = nodes,
+                    sub_examples = sub_examples)
 
 
 

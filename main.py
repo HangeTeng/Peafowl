@@ -342,11 +342,3 @@ if __name__ == "__main__":
                 # print(targets)
             node.tgt_dataset.add(data=data,targets=targets)
             print(tgt_dataset.data[:].tolist())
-                
-
-                
-
-        
-       
-            
-            

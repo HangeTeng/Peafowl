@@ -26,11 +26,13 @@ class Timer:
     def __str__(self):
         output = ""
         previous_time = None
-
+        all_time = 0
+        output += f"timepoint  |   all    | elapsed  |\n"
         for label, timestamp in self.time_points.items():
             if previous_time is not None:
                 elapsed_time = timestamp - previous_time
-                output += f"{label}: {elapsed_time:.4f} seconds\n"
+                all_time += elapsed_time
+                output += f"{label} | {all_time:.4f} s | {elapsed_time:.4f} s |\n"
             previous_time = timestamp
 
         return output
@@ -47,6 +49,8 @@ if __name__ == "__main__":
     targets_rank = 0
     folder_path = "./data/SVM_{}_{}".format(
                 examples, features)
+    
+    sys.sdout = folder_path + "log"
 
 
     secret_key = "secret_key"
@@ -441,11 +445,11 @@ if __name__ == "__main__":
     timer.set_time_point("tgt_final ")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(timer.currentlabel,global_rank,node.totalDataSent,node.totalDataRecv))
 
-    print(timer)
-
     print("intersection size:{}".format(permute_length))
-    if not is_server:
-        print(node.tgt_dataset.data.shape)
-        print(node.tgt_dataset.data[0][0:2])
-    if global_rank == 0:
-        print(encoder.encode(node.src_dataset.data[:,0]))
+    print(timer)
+    
+    # if not is_server:
+    #     print(node.tgt_dataset.data.shape)
+    #     print(node.tgt_dataset.data[0][0:2])
+    # if global_rank == 0:
+    #     print(encoder.encode(node.src_dataset.data[:,0]))

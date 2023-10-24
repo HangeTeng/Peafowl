@@ -23,7 +23,19 @@ if __name__ == "__main__":
                 examples, features, i, nodes)
         tgt.append(HDF5Dataset(tgt_path))
     
-    a = tgt[0].data[:,0]
+    a = tgt[0].data[...]
     for i in range(1,nodes):
-        a += tgt[i].data[:,0]
+        a += tgt[i].data[...]
     print(encoder.decode(a))
+
+    a = tgt[0].targets[:]
+    for i in range(1,nodes):
+        a += tgt[i].targets[:]
+    print(encoder.decode(a))
+
+    src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path,
+                examples, features, 0, nodes)
+    src_dataset = HDF5Dataset(src_path)
+    print(src_dataset.data[...])
+    print(src_dataset.targets[...])
+    

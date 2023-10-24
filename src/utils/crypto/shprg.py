@@ -62,9 +62,9 @@ class SHPRG(object):
     # @timer
     def __genAES128(self, seedA):
         """Generate matrix A using AES-128 (SHPRG specification, Algorithm 7)"""
-        A = [[0 for _ in range(self.n)] for _ in range(self.m)]
-        for i in range(self.m):
-            for j in range(self.n):
+        A = [[0 for _ in range(self.m)] for _ in range(self.n)]
+        for i in range(self.n):
+            for j in range(self.m):
                 b = bytearray(16)
                 struct.pack_into('<H', b, 0, i)
                 struct.pack_into('<H', b, 2, j)
@@ -79,9 +79,9 @@ class SHPRG(object):
         """Generate matrix A using AES-128 (SHPRG specification, Algorithm 7)"""
         q = 2 ** EQ
         len_q_bytes = int(EQ / 8)
-        A = [[0 for _ in range(n)] for _ in range(m)]
-        for i in range(m):
-            for j in range(n):
+        A = [[0 for _ in range(m)] for _ in range(n)]
+        for i in range(n):
+            for j in range(m):
                 b = bytearray(16)
                 struct.pack_into('<H', b, 0, i)
                 struct.pack_into('<H', b, 2, j)
@@ -93,29 +93,32 @@ class SHPRG(object):
 
     # @timer
     def genRandom(self, s_np):
-        output = np.dot(self.A, s_np)
+        output = np.dot(s_np , self.A)
         output = output* self.p 
         output = output // self.q
         output = output % self.p
         return output
 
 if __name__ == "__main__":
-    n = 2 ** 8
-    m = 2 ** 15
+    n = 2 ** 1
+    m = 2 ** 3
     EQ = 64
     EP = 32
     # load_A = 'A_{}_{}.npy'.format(n,m)
     load_A = ""
     prg = SHPRG(input=n, output = m , EQ = EQ, EP = EP, load_A = load_A)
-    s1 = np.array([[i+1] for i in range(n)])
-    s2 = np.array([[78] for _ in range(n)])
-    s3 = np.array([[i+1+78] for i in range(n)])
+    s1 = np.array([[i+1 for i in range(n)]])
+    print(s1.shape)
+    print(prg.A.shape)
+    s2 = np.array([[78 for _ in range(n)]])
+    s3 = np.array([[i+1+78 for i in range(n)]])
 
     a = prg.genRandom(s1)
+    print(a.shape)
     b = prg.genRandom(s2)
     c = prg.genRandom(s3)
     for i in range(m):
-        x = (a[i][0] + b[i][0] - c[i][0]) % 2**EP
+        x = (a[0][i] + b[0][i] - c[0][i]) % 2**EP
         if(x != 2**EP-1 and x>1):
             print("error!")
 

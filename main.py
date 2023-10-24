@@ -50,8 +50,9 @@ if __name__ == "__main__":
     folder_path = "./data/SVM_{}_{}".format(
                 examples, features)
     
-    sys.sdout = folder_path + "log"
-
+    
+    file = open(folder_path + "/log", 'a')
+    sys.stdout = file
 
     secret_key = "secret_key"
 
@@ -453,3 +454,5 @@ if __name__ == "__main__":
     #     print(node.tgt_dataset.data[0][0:2])
     # if global_rank == 0:
     #     print(encoder.encode(node.src_dataset.data[:,0]))
+
+    file.close()

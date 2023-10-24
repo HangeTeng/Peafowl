@@ -6,3 +6,4 @@ dataset/
 src/communicator/*.btr
 src/utils/hprg/*.npy
 *.npy
+*.btr

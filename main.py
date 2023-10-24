@@ -37,8 +37,8 @@ class Timer:
 
 if __name__ == "__main__":
     # dataset
-    examples = 60000
-    features = 60000
+    examples = 6
+    features = 60
     chunk = 100
     # sub_dataset
     nodes = 3
@@ -271,7 +271,7 @@ if __name__ == "__main__":
                 b[:,k] = _b
             a_s.append(a)
             b_s.append(b)
-        permutes = [[4, 0, 3, 1, 2], [4, 3, 0, 2, 1], [1, 3, 4, 0, 2]]
+        # permutes = [[4, 0, 3, 1, 2], [4, 3, 0, 2, 1], [1, 3, 4, 0, 2]]
         # if global_rank == 0:
             # print((a_s[2][permutes[2]]-b_s[2])%(2**128))
         
@@ -444,3 +444,8 @@ if __name__ == "__main__":
     print(timer)
 
     print("intersection size:{}".format(permute_length))
+    if not is_server:
+        print(node.tgt_dataset.data.shape)
+        print(node.tgt_dataset.data[0][0:2])
+    if global_rank == 0:
+        print(encoder.encode(node.src_dataset.data[:,0]))

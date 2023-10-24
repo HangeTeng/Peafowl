@@ -1,5 +1,7 @@
 .vscode/
 data/
+!data/prg/
+data/prg/*.npy
 dataset/
 src/communicator/*.btr
 src/utils/hprg/*.npy

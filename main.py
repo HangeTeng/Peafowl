@@ -4,6 +4,7 @@ import numpy as np
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor
+from line_profiler import LineProfiler
 
 from src.communicator.node import Node
 from src.utils.h5dataset import HDF5Dataset
@@ -36,7 +37,6 @@ class Timer:
             previous_time = timestamp
 
         return output
-
 
 def main():
     # dataset
@@ -386,4 +386,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    profiler = LineProfiler()
+    profiler.add_function(main)
+    profiler.run('main()')
+
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    output_filename = f'profile_rank_{rank}.txt'
+    
+    with open(output_filename, 'w') as output_file:
+        profiler.print_stats(stream=output_file)
+

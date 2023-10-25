@@ -8,6 +8,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import numpy as np
+import numba
+
+from line_profiler import LineProfiler
 
 # This is for timing
 def timer(func):
@@ -90,28 +93,34 @@ class SHPRG(object):
                     A[i][j] += int.from_bytes(c, byteorder='big') * (2 ** (k*128) )
                     A[i][j] %= q
         return A
-
-    # @timer
+    
+    
+    # @profile
     def genRandom(self, s_np):
-        output = np.dot(s_np , self.A)
-        output = output* self.p 
-        output = output // self.q
-        output = output % self.p
+        A = self.A
+        p = self.p
+        q = self.q
+
+        output = np.empty((s_np.shape[0],A.shape[1]),dtype=object)
+        np.dot(s_np , A, out=output)
+        np.multiply(output, p, out=output)
+        np.floor_divide(output, q, out=output)
+        np.mod(output, p, out=output)
         return output
 
 if __name__ == "__main__":
-    n = 2 ** 1
-    m = 2 ** 3
-    EQ = 64
-    EP = 32
-    # load_A = 'A_{}_{}.npy'.format(n,m)
+    n = 2 
+    m = 6000
+    EQ = 128
+    EP = 64
+    # load_A = './data/prg/A_n{}_m{}_q{}_p{}.npy'.format(n,m,EQ,EP)
     load_A = ""
     prg = SHPRG(input=n, output = m , EQ = EQ, EP = EP, load_A = load_A)
-    s1 = np.array([[i+1 for i in range(n)]])
+    s1 = np.array([[i+1 for i in range(n)]]*1000)
     print(s1.shape)
     print(prg.A.shape)
-    s2 = np.array([[78 for _ in range(n)]])
-    s3 = np.array([[i+1+78 for i in range(n)]])
+    s2 = np.array([[78 for _ in range(n)]]*1000)
+    s3 = np.array([[i+1+78 for i in range(n)]]*1000)
 
     a = prg.genRandom(s1)
     print(a.shape)

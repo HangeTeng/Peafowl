@@ -3,6 +3,7 @@ import math
 import random
 import numpy as np
 from src.utils.h5dataset import HDF5Dataset, preprocess_linearSVM, save_subset_h5
+import sys
 
 def lsvm_gen_split(
     examples = 6000,
@@ -52,15 +53,18 @@ def lsvm_gen_split(
         os.mkdir(tgt_folder_path)
 
 if __name__ == '__main__':
+    import subprocess
     
-    for examples in [6000]:
-        sub_examples = examples * 5 // 6
-        for features in [6000]:
+    for sub_examples in [10000]:
+        examples = sub_examples * 6 // 5
+        for sub_features in [30000]:
             for nodes in [3]:
+                features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,
                     nodes = nodes,
                     sub_examples = sub_examples)
+                subprocess.run("mpiexec -n {} python3 main.py {} {}".format(nodes + 1, examples, features), shell=True)
 
 
 

@@ -88,7 +88,7 @@ class Node():
                p=1 << 128,
                Sip="127.0.0.1:12222",
                ot_type=1,
-               num_threads=2):
+               num_threads=8):
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if recver is None else str(
             comm.Get_rank()) + "_" + str(recver) + "_" + str(tag)
@@ -99,8 +99,6 @@ class Node():
                         Sip=Sip,
                         ot_type=ot_type,
                         num_threads=num_threads)
-        self.totalDataSent += self.STSender.getTotalDataSent() / 1024 / 1024
-        self.totalDataRecv += self.STSender.getTotalDataRecv() / 1024 / 1024
         return result
 
     # @timer
@@ -112,7 +110,7 @@ class Node():
                p=1 << 128,
                Sip="127.0.0.1:12222",
                ot_type=1,
-               num_threads=2):
+               num_threads=8):
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if sender is None else str(sender) + "_" + str(
             comm.Get_rank()) + "_" + str(tag)
@@ -122,8 +120,6 @@ class Node():
                             Sip=Sip,
                             ot_type=ot_type,
                             num_threads=num_threads)
-        self.totalDataSent += self.STSender.getTotalDataSent() / 1024 / 1024
-        self.totalDataRecv += self.STSender.getTotalDataRecv() / 1024 / 1024
         return result[0],result[1]
 
 
@@ -131,7 +127,7 @@ class Node():
         size = sys.getsizeof(obj)
         
         if isinstance(obj, (np.ndarray)):
-            return size + obj.nbytes
+            return obj.nbytes
         elif isinstance(obj, (int, float, bool, str)):
             return size
         elif isinstance(obj, (list, tuple)):
@@ -141,6 +137,11 @@ class Node():
         
         return size
 
+    def getTotalDataSent(self):
+        return self.totalDataSent + self.STSender.getTotalDataSent() / 1024 / 1024 + self.STRecver.getTotalDataSent() / 1024 / 1024
+    
+    def getTotalDataRecv(self):
+        return self.totalDataSent + self.STSender.getTotalDataRecv() / 1024 / 1024 + self.STRecver.getTotalDataRecv() / 1024 / 1024
 
     def __split_array(self, arr, split_num=2):
         shape = arr.shape

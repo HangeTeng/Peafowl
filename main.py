@@ -43,9 +43,9 @@ def main():
     arguments = sys.argv[1:]
     examples = int(arguments[0])
     features = int(arguments[1])
-    chunk = 300
+    chunk = 1000
     # sub_dataset
-    nodes = 3
+    nodes = MPI.COMM_WORLD.Get_size() - 1
     sub_examples = examples * 5 // 6
     sub_features = features // nodes
     targets_rank = 0
@@ -54,13 +54,13 @@ def main():
 
     file = open(folder_path + "/log", 'a')
     sys.stdout = file
-    sys.stdout = sys.__stdout__
+    # sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
     # shprg
-    n = 2
-    m = sub_features + 1
+    n = 16
+    m = sub_features + target_length
     EQ = 128
     EP = 64
     q = 2**EQ
@@ -120,8 +120,8 @@ def main():
     # print("start test...")
     timer.set_time_point("start_test")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
 
     #* encrypted ID
     if is_server:
@@ -150,8 +150,8 @@ def main():
 
     timer.set_time_point("server_psi")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
 
     #* share
     round_examples = sub_examples // chunk + (1 if sub_examples % chunk != 0
@@ -204,8 +204,8 @@ def main():
 
     timer.set_time_point("dset_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
 
     # seeds share
     if is_server:
@@ -215,8 +215,8 @@ def main():
 
     timer.set_time_point("seed_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
 
     # share_tras
     if is_server:
@@ -259,8 +259,8 @@ def main():
 
     timer.set_time_point("share_tras")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
 
     # permute and share
     if is_server:
@@ -286,8 +286,8 @@ def main():
 
     timer.set_time_point("perm_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
 
     # share intersection size
     if is_server:
@@ -352,7 +352,7 @@ def main():
         for i in range(round_inter):
             recv = node.recv(source=server_rank, tag=i)
             rest = len(recv[0])
-            print(rest)
+            # print(rest)
             for rank in range(client_size):
                 if client_rank == rank:
                     data[:rest, rank * sub_features:(rank + 1) *
@@ -360,8 +360,9 @@ def main():
                     if rank == targets_rank:
                         targets[:rest]= recv[1].reshape((rest, target_length))
                     continue
-                output_prg = mod_range(shprg.genRandom(
-                    seed2s[rank][index[rank]:index[rank] + rest]), p).astype(np.int64)
+                output_prg = mod_range(
+                    shprg.genRandom(seed2s[rank][index[rank]:index[rank] + rest]),
+                      p).astype(np.int64)
                 data[:rest, rank * sub_features:(rank + 1) *
                      sub_features] = output_prg[:, :sub_features]
                 if rank == targets_rank:
@@ -373,12 +374,12 @@ def main():
                 continue
             node.tgt_dataset.add(data=data[:rest], targets=targets[:rest])
 
-        print(node.tgt_dataset.targets[1])
+        # print(node.tgt_dataset.targets[1])
 
     timer.set_time_point("tgt_final ")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-        timer.currentlabel, global_rank, node.totalDataSent,
-        node.totalDataRecv))
+        timer.currentlabel, global_rank, node.getTotalDataSent(),
+        node.getTotalDataRecv()))
     print("intersection size:{}".format(permute_length))
     print(timer)
 

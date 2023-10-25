@@ -54,12 +54,12 @@ def main():
 
     file = open(folder_path + "/log", 'a')
     sys.stdout = file
-    # sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
     # shprg
-    n = 16
+    n = 2
     m = sub_features + target_length
     EQ = 128
     EP = 64

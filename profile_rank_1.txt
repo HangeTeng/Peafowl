@@ -1,65 +1,65 @@
 Timer unit: 1e-09 s
 
-Total time: 10.9557 s
-File: /home/ubuntu/mSAID/main.py
+Total time: 50.6833 s
+File: /home/mSAID/main.py
 Function: main at line 41
 
 Line #      Hits         Time  Per Hit   % Time  Line Contents
 ==============================================================
     41                                           def main():
     42                                               # dataset
-    43         1       1262.0   1262.0      0.0      arguments = sys.argv[1:]
-    44         1        952.0    952.0      0.0      examples = int(arguments[0])
-    45         1        371.0    371.0      0.0      features = int(arguments[1])
-    46         1        250.0    250.0      0.0      chunk = 1000
+    43         1       6600.0   6600.0      0.0      arguments = sys.argv[1:]
+    44         1       5100.0   5100.0      0.0      examples = int(arguments[0])
+    45         1       2600.0   2600.0      0.0      features = int(arguments[1])
+    46         1       1800.0   1800.0      0.0      chunk = 1000
     47                                               # sub_dataset
-    48         1      10310.0  10310.0      0.0      nodes = MPI.COMM_WORLD.Get_size() - 1
-    49         1        521.0    521.0      0.0      sub_examples = examples * 5 // 6
-    50         1        240.0    240.0      0.0      sub_features = features // nodes
-    51         1        181.0    181.0      0.0      targets_rank = 0
-    52         1        150.0    150.0      0.0      target_length = 1
-    53         1       1202.0   1202.0      0.0      folder_path = "./data/SVM_{}_{}".format(examples, features)
+    48         1      23700.0  23700.0      0.0      nodes = MPI.COMM_WORLD.Get_size() - 1
+    49         1       2400.0   2400.0      0.0      sub_examples = examples * 5 // 6
+    50         1       1800.0   1800.0      0.0      sub_features = features // nodes
+    51         1       1300.0   1300.0      0.0      targets_rank = 0
+    52         1       1300.0   1300.0      0.0      target_length = 1
+    53         1       5300.0   5300.0      0.0      folder_path = "./data/SVM_{}_{}".format(examples, features)
     54                                           
-    55         1      24777.0  24777.0      0.0      file = open(folder_path + "/log", 'a')
-    56         1        621.0    621.0      0.0      sys.stdout = file
-    57                                               # sys.stdout = sys.__stdout__
+    55         1     960500.0 960500.0      0.0      file = open(folder_path + "/log", 'a')
+    56         1       3300.0   3300.0      0.0      sys.stdout = file
+    57         1       2600.0   2600.0      0.0      sys.stdout = sys.__stdout__
     58                                           
-    59         1        200.0    200.0      0.0      secret_key = "secret_key"
+    59         1       1700.0   1700.0      0.0      secret_key = "secret_key"
     60                                           
     61                                               # shprg
-    62         1        200.0    200.0      0.0      n = 16
-    63         1        351.0    351.0      0.0      m = sub_features + target_length
-    64         1        160.0    160.0      0.0      EQ = 128
-    65         1        130.0    130.0      0.0      EP = 64
-    66         1       1092.0   1092.0      0.0      q = 2**EQ
-    67         1        582.0    582.0      0.0      p = 2**EP
-    68         1       5029.0   5029.0      0.0      seedA = bytes(0x355678)
+    62         1       1600.0   1600.0      0.0      n = 2
+    63         1       1800.0   1800.0      0.0      m = sub_features + target_length
+    64         1       1400.0   1400.0      0.0      EQ = 128
+    65         1       1300.0   1300.0      0.0      EP = 64
+    66         1       4100.0   4100.0      0.0      q = 2**EQ
+    67         1       2200.0   2200.0      0.0      p = 2**EP
+    68         1      21400.0  21400.0      0.0      seedA = bytes(0x355678)
     69                                           
-    70         1        180.0    180.0      0.0      precision_bits = 16
-    71         1       2144.0   2144.0      0.0      encoder = FixedPointEncoder(precision_bits=precision_bits)
+    70         1       1400.0   1400.0      0.0      precision_bits = 16
+    71         1      10800.0  10800.0      0.0      encoder = FixedPointEncoder(precision_bits=precision_bits)
     72                                           
-    73         1  118087399.0    1e+08      1.1      shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP, seedA=seedA)
+    73         1 1380739200.0    1e+09      2.7      shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP, seedA=seedA)
     74                                           
-    75         1       1293.0   1293.0      0.0      global_comm = MPI.COMM_WORLD
-    76         1       3316.0   3316.0      0.0      global_rank = global_comm.Get_rank()
-    77         1        952.0    952.0      0.0      global_size = global_comm.Get_size()
+    75         1       5800.0   5800.0      0.0      global_comm = MPI.COMM_WORLD
+    76         1       8500.0   8500.0      0.0      global_rank = global_comm.Get_rank()
+    77         1       2900.0   2900.0      0.0      global_size = global_comm.Get_size()
     78                                           
-    79         1      10069.0  10069.0      0.0      global_grp = global_comm.Get_group()
-    80         1       4448.0   4448.0      0.0      client_grp = global_grp.Excl([global_size - 1])
-    81         1   19717280.0    2e+07      0.2      client_comm = global_comm.Create(client_grp)
-    82         1       1583.0   1583.0      0.0      client_rank = None if client_comm == MPI.COMM_NULL else client_comm.Get_rank(
+    79         1      22700.0  22700.0      0.0      global_grp = global_comm.Get_group()
+    80         1      17600.0  17600.0      0.0      client_grp = global_grp.Excl([global_size - 1])
+    81         1 1225526700.0    1e+09      2.4      client_comm = global_comm.Create(client_grp)
+    82         1      10300.0  10300.0      0.0      client_rank = None if client_comm == MPI.COMM_NULL else client_comm.Get_rank(
     83                                               )
-    84         1        681.0    681.0      0.0      client_size = client_grp.Get_size()
+    84         1       2900.0   2900.0      0.0      client_size = client_grp.Get_size()
     85                                           
-    86         1        220.0    220.0      0.0      is_server = False
-    87         1        542.0    542.0      0.0      if global_rank == global_size - 1:
+    86         1       1400.0   1400.0      0.0      is_server = False
+    87         1       2200.0   2200.0      0.0      if global_rank == global_size - 1:
     88                                                   is_server = True
-    89         1        221.0    221.0      0.0      server_rank = global_size - 1
+    89         1       1000.0   1000.0      0.0      server_rank = global_size - 1
     90                                           
-    91         1       3366.0   3366.0      0.0      timer = Timer()
+    91         1       8600.0   8600.0      0.0      timer = Timer()
     92                                           
     93                                               #* initial node
-    94         1        331.0    331.0      0.0      if is_server:
+    94         1       2200.0   2200.0      0.0      if is_server:
     95                                                   node = Node(None, None, global_comm, client_comm)
     96                                                   temp_dataset = []
     97                                                   temp_folder_path = folder_path + "/temp"
@@ -72,59 +72,59 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    104                                                                             targets_shape=(),
    105                                                                             dtype=np.int64))
    106                                               else:
-   107         2       2244.0   1122.0      0.0          src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path, examples,
-   108         1        200.0    200.0      0.0                                                      features, global_rank,
-   109         1        140.0    140.0      0.0                                                      nodes)
-   110         1     897791.0 897791.0      0.0          src_dataset = HDF5Dataset(file_path=src_path)
-   111         1        531.0    531.0      0.0          tgt_folder_path = folder_path + "/tgt"
-   112         2       4048.0   2024.0      0.0          tgt_path = "{}/SVM_{}_{}_{}-{}_tgt.hdf5".format(
-   113         1        260.0    260.0      0.0              tgt_folder_path, examples, features, global_rank, nodes)
-   114         2    1252909.0 626454.5      0.0          tgt_dataset = HDF5Dataset.empty(file_path=tgt_path,
-   115         1        281.0    281.0      0.0                                          data_shape=(features, ),
-   116         1        200.0    200.0      0.0                                          targets_shape=(),
-   117         1        921.0    921.0      0.0                                          dtype=np.int64)
-   118         1     342915.0 342915.0      0.0          node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
+   107         2       6700.0   3350.0      0.0          src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path, examples,
+   108         1       1700.0   1700.0      0.0                                                      features, global_rank,
+   109         1        800.0    800.0      0.0                                                      nodes)
+   110         1   87120700.0    9e+07      0.2          src_dataset = HDF5Dataset(file_path=src_path)
+   111         1       2000.0   2000.0      0.0          tgt_folder_path = folder_path + "/tgt"
+   112         2       6600.0   3300.0      0.0          tgt_path = "{}/SVM_{}_{}_{}-{}_tgt.hdf5".format(
+   113         1        900.0    900.0      0.0              tgt_folder_path, examples, features, global_rank, nodes)
+   114         2   66833600.0    3e+07      0.1          tgt_dataset = HDF5Dataset.empty(file_path=tgt_path,
+   115         1       1200.0   1200.0      0.0                                          data_shape=(features, ),
+   116         1        800.0    800.0      0.0                                          targets_shape=(),
+   117         1       2900.0   2900.0      0.0                                          dtype=np.int64)
+   118         1  933252100.0    9e+08      1.8          node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
    119                                           
    120                                               # print("start test...")
-   121         1       3417.0   3417.0      0.0      timer.set_time_point("start_test")
-   122         2       9337.0   4668.5      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   123         1      12163.0  12163.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   124         1       5670.0   5670.0      0.0          node.getTotalDataRecv()))
+   121         1      15200.0  15200.0      0.0      timer.set_time_point("start_test")
+   122         2      35000.0  17500.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   123         1      32200.0  32200.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   124         1      31800.0  31800.0      0.0          node.getTotalDataRecv()))
    125                                           
    126                                               #* encrypted ID
-   127         1        311.0    311.0      0.0      if is_server:
+   127         1       1900.0   1900.0      0.0      if is_server:
    128                                                   id_enc = None
    129                                               else:
-   130         1       7033.0   7033.0      0.0          prf = PRF(secret_key=secret_key)
-   131         1     423227.0 423227.0      0.0          id_enc = np.vectorize(prf.compute)(node.src_dataset.ids[...])
-   132         1     186121.0 186121.0      0.0      id_enc_gather = node.gather(id_enc, server_rank)
+   130         1      15100.0  15100.0      0.0          prf = PRF(secret_key=secret_key)
+   131         1     919200.0 919200.0      0.0          id_enc = np.vectorize(prf.compute)(node.src_dataset.ids[...])
+   132         1     281800.0 281800.0      0.0      id_enc_gather = node.gather(id_enc, server_rank)
    133                                           
    134                                               #* server-aid PSI
-   135         1        221.0    221.0      0.0      if is_server:
+   135         1       1600.0   1600.0      0.0      if is_server:
    136                                                   permutes, permute_length = node.find_intersection_indices(
    137                                                       id_enc_gather[:-1])
    138                                               else:
-   139         1        150.0    150.0      0.0          pass
+   139         1       1200.0   1200.0      0.0          pass
    140                                           
    141                                               #* seeds generation
-   142         1        181.0    181.0      0.0      if is_server:
+   142         1       1300.0   1300.0      0.0      if is_server:
    143                                                   pass
    144                                               else:
-   145         2    1329093.0 664546.5      0.0          seeds = [(None if i == client_rank else np.array(
+   145         2     201900.0 100950.0      0.0          seeds = [(None if i == client_rank else np.array(
    146                                                       [[k + j * 10 + i * 100 + client_rank * 1000 for k in range(n)]
    147                                                        for j in range(sub_examples)]))
-   148         1        491.0    491.0      0.0                   for i in range(client_size)]  #! test
+   148         1       3000.0   3000.0      0.0                   for i in range(client_size)]  #! test
    149                                                   # seeds = [(None if i == client_rank else SHPRG.genMatrixAES128(seed=token_bytes(16),n=sub_examples,m=n,EQ=EQ) ) for i in range(client_size)]
    150                                           
-   151         1       1623.0   1623.0      0.0      timer.set_time_point("server_psi")
-   152         2       4729.0   2364.5      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   153         1      12503.0  12503.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   154         1       5490.0   5490.0      0.0          node.getTotalDataRecv()))
+   151         1      11700.0  11700.0      0.0      timer.set_time_point("server_psi")
+   152         2      21700.0  10850.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   153         1      43200.0  43200.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   154         1      16400.0  16400.0      0.0          node.getTotalDataRecv()))
    155                                           
    156                                               #* share
-   157         1        781.0    781.0      0.0      round_examples = sub_examples // chunk + (1 if sub_examples % chunk != 0
+   157         1       4100.0   4100.0      0.0      round_examples = sub_examples // chunk + (1 if sub_examples % chunk != 0
    158                                                                                         else 0)
-   159         1        260.0    260.0      0.0      if is_server:
+   159         1       1800.0   1800.0      0.0      if is_server:
    160                                                   def sharesend_thread(rank):
    161                                                       for i in range(round_examples):
    162                                                           recv = node.recv(source=rank, tag=i)
@@ -133,61 +133,61 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    165                                                   with ThreadPoolExecutor(max_workers=client_size) as executor:
    166                                                       executor.map(sharesend_thread, range(client_size))
    167                                               else:
-   168         1        361.0    361.0      0.0          with_targets = node.src_dataset.with_targets
+   168         1       3600.0   3600.0      0.0          with_targets = node.src_dataset.with_targets
    169                                           
-   170         1       6402.0   6402.0      0.0          data_to_server = np.empty((chunk, sub_features), dtype=np.int64)
-   171         2        360.0    180.0      0.0          targets_to_server = np.empty(
-   172         2        340.0    170.0      0.0              (chunk, target_length), dtype=np.int64) if with_targets else None
-   173         1        190.0    190.0      0.0          index = 0
+   170         1      26600.0  26600.0      0.0          data_to_server = np.empty((chunk, sub_features), dtype=np.int64)
+   171         2       2800.0   1400.0      0.0          targets_to_server = np.empty(
+   172         2       3100.0   1550.0      0.0              (chunk, target_length), dtype=np.int64) if with_targets else None
+   173         1       1900.0   1900.0      0.0          index = 0
    174                                           
-   175         2       1193.0    596.5      0.0          for i in range(round_examples):
-   176         1       1042.0   1042.0      0.0              rest = min(sub_examples - index, chunk)
-   177         1     250872.0 250872.0      0.0              data_to_server[:rest] = encoder.encode(node.src_dataset.data[index:index + rest])
-   178         1        331.0    331.0      0.0              if with_targets:
+   175         2       7000.0   3500.0      0.0          for i in range(round_examples):
+   176         1       4800.0   4800.0      0.0              rest = min(sub_examples - index, chunk)
+   177         1   53781200.0    5e+07      0.1              data_to_server[:rest] = encoder.encode(node.src_dataset.data[index:index + rest])
+   178         1       2200.0   2200.0      0.0              if with_targets:
    179                                                           targets_to_server[:rest] = encoder.encode(
    180                                                               node.src_dataset.targets[index:index + rest]).reshape(
    181                                                                   rest, target_length)
-   182         4       1813.0    453.2      0.0              for k in range(client_size):
-   183         3       1041.0    347.0      0.0                  if k == client_rank:
-   184         1        140.0    140.0      0.0                      continue
-   185         6    1008318.0 168053.0      0.0                  output_prg = mod_range(
-   186         2   20990679.0    1e+07      0.2                      shprg.genRandom(seeds[k][index:index + rest]),
-   187         4     687436.0 171859.0      0.0                      p).astype(np.int64)
-   188         2      35308.0  17654.0      0.0                  data_to_server[:rest] -= output_prg[:, :sub_features]
-   189         2        782.0    391.0      0.0                  if with_targets:
+   182         5      13800.0   2760.0      0.0              for k in range(client_size):
+   183         4       8200.0   2050.0      0.0                  if k == client_rank:
+   184         1       1100.0   1100.0      0.0                      continue
+   185         9     164200.0  18244.4      0.0                  output_prg = mod_range(
+   186         3     689600.0 229866.7      0.0                      shprg.genRandom(seeds[k][index:index + rest]),
+   187         6      72500.0  12083.3      0.0                      p).astype(np.int64)
+   188         3      88700.0  29566.7      0.0                  data_to_server[:rest] -= output_prg[:, :sub_features]
+   189         3       5900.0   1966.7      0.0                  if with_targets:
    190                                                               targets_to_server[:rest] -= output_prg[:, sub_features:sub_features +
    191                                                                                    target_length]
-   192         1        370.0    370.0      0.0              index += rest
-   193         1        300.0    300.0      0.0              if target_length == 1:
-   194         2     403930.0 201965.0      0.0                  node.send(
-   195         3        953.0    317.7      0.0                      (data_to_server[:rest], targets_to_server[:rest].ravel()
-   196         2        252.0    126.0      0.0                       if with_targets else None),
-   197         1        220.0    220.0      0.0                      dest=server_rank,
-   198         1        120.0    120.0      0.0                      tag=i)
-   199         1        330.0    330.0      0.0                  continue
+   192         1       2000.0   2000.0      0.0              index += rest
+   193         1       1800.0   1800.0      0.0              if target_length == 1:
+   194         2     222300.0 111150.0      0.0                  node.send(
+   195         3       5200.0   1733.3      0.0                      (data_to_server[:rest], targets_to_server[:rest].ravel()
+   196         2       2300.0   1150.0      0.0                       if with_targets else None),
+   197         1       1200.0   1200.0      0.0                      dest=server_rank,
+   198         1       1200.0   1200.0      0.0                      tag=i)
+   199         1       2100.0   2100.0      0.0                  continue
    200                                                       node.send((data_to_server[:rest],
    201                                                                  targets_to_server[:rest] if with_targets else None),
    202                                                                 dest=server_rank,
    203                                                                 tag=i)
    204                                           
-   205         1       1703.0   1703.0      0.0      timer.set_time_point("dset_share")
-   206         2       4790.0   2395.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   207         1      13827.0  13827.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   208         1       5401.0   5401.0      0.0          node.getTotalDataRecv()))
+   205         1      13200.0  13200.0      0.0      timer.set_time_point("dset_share")
+   206         2      21300.0  10650.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   207         1      44200.0  44200.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   208         1      14200.0  14200.0      0.0          node.getTotalDataRecv()))
    209                                           
    210                                               # seeds share
-   211         1        201.0    201.0      0.0      if is_server:
+   211         1      34200.0  34200.0      0.0      if is_server:
    212                                                   pass
    213                                               else:
-   214         1     204945.0 204945.0      0.0          seeds_exchanged = node.alltoall(seeds, in_clients=True)
+   214         1  231699600.0    2e+08      0.5          seeds_exchanged = node.alltoall(seeds, in_clients=True)
    215                                           
-   216         1       1092.0   1092.0      0.0      timer.set_time_point("seed_share")
-   217         2       3018.0   1509.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   218         1       9057.0   9057.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   219         1       5180.0   5180.0      0.0          node.getTotalDataRecv()))
+   216         1      13300.0  13300.0      0.0      timer.set_time_point("seed_share")
+   217         2      17200.0   8600.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   218         1      33800.0  33800.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   219         1      18900.0  18900.0      0.0          node.getTotalDataRecv()))
    220                                           
    221                                               # share_tras
-   222         1        401.0    401.0      0.0      if is_server:
+   222         1       1500.0   1500.0      0.0      if is_server:
    223                                                   all_deltas = [[] for _ in range(client_size)]
    224                                           
    225                                                   def STsend_thread(rank):
@@ -207,40 +207,40 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    239                                                   with ThreadPoolExecutor(max_workers=client_size) as executor:
    240                                                       executor.map(STsend_thread, range(client_size))
    241                                               else:
-   242         1        160.0    160.0      0.0          a_s = []
-   243         1        121.0    121.0      0.0          b_s = []
-   244         4       2044.0    511.0      0.0          for rank in range(client_size):
-   245         3       1654.0    551.3      0.0              if client_rank == rank:
-   246         1        251.0    251.0      0.0                  a_s.append(None)
-   247         1        321.0    321.0      0.0                  b_s.append(None)
-   248         1        190.0    190.0      0.0                  continue
-   249         2       7685.0   3842.5      0.0              a = np.empty((sub_examples, n), dtype=object)
-   250         2       4789.0   2394.5      0.0              b = np.empty((sub_examples, n), dtype=object)
-   251        34      24608.0    723.8      0.0              for k in range(n):
-   252        64 9511029018.0    1e+08     86.8                  _a, _b = node.STrecv(size=sub_examples,
-   253        32       6172.0    192.9      0.0                                       sender=server_rank,
-   254        32      19729.0    616.5      0.0                                       tag=rank + k * 100)
-   255        32     220624.0   6894.5      0.0                  a[:, k] = _a
-   256        32      85440.0   2670.0      0.0                  b[:, k] = _b
-   257         2       1102.0    551.0      0.0              a_s.append(a)
-   258         2       1434.0    717.0      0.0              b_s.append(b)
+   242         1       1400.0   1400.0      0.0          a_s = []
+   243         1       1600.0   1600.0      0.0          b_s = []
+   244         5       9100.0   1820.0      0.0          for rank in range(client_size):
+   245         4       8000.0   2000.0      0.0              if client_rank == rank:
+   246         1       1200.0   1200.0      0.0                  a_s.append(None)
+   247         1       1100.0   1100.0      0.0                  b_s.append(None)
+   248         1        900.0    900.0      0.0                  continue
+   249         3      24100.0   8033.3      0.0              a = np.empty((sub_examples, n), dtype=object)
+   250         3      11200.0   3733.3      0.0              b = np.empty((sub_examples, n), dtype=object)
+   251         9      19900.0   2211.1      0.0              for k in range(n):
+   252        12        3e+10    3e+09     59.3                  _a, _b = node.STrecv(size=sub_examples,
+   253         6       6200.0   1033.3      0.0                                       sender=server_rank,
+   254         6      10400.0   1733.3      0.0                                       tag=rank + k * 100)
+   255         6      46500.0   7750.0      0.0                  a[:, k] = _a
+   256         6      13900.0   2316.7      0.0                  b[:, k] = _b
+   257         3       6500.0   2166.7      0.0              a_s.append(a)
+   258         3       4400.0   1466.7      0.0              b_s.append(b)
    259                                           
-   260         1       6662.0   6662.0      0.0      timer.set_time_point("share_tras")
-   261         2      13765.0   6882.5      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   262         1      24345.0  24345.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   263         1       6222.0   6222.0      0.0          node.getTotalDataRecv()))
+   260         1      10200.0  10200.0      0.0      timer.set_time_point("share_tras")
+   261         2      18600.0   9300.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   262         1      28300.0  28300.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   263         1       9300.0   9300.0      0.0          node.getTotalDataRecv()))
    264                                           
    265                                               # permute and share
-   266         1        341.0    341.0      0.0      if is_server:
+   266         1       1200.0   1200.0      0.0      if is_server:
    267                                                   seeds_exchanged = None
    268                                               else:
-   269         4       3537.0    884.2      0.0          for i in range(client_size):
-   270         3       1253.0    417.7      0.0              if client_rank == i:
-   271         1        181.0    181.0      0.0                  continue
-   272         2     318721.0 159360.5      0.0              seeds_exchanged[i] = (seeds_exchanged[i] - a_s[i]) % q
-   273         1 1205565271.0    1e+09     11.0      seeds_share_gather = node.gather(seeds_exchanged, server_rank)
+   269         5       9100.0   1820.0      0.0          for i in range(client_size):
+   270         4       5900.0   1475.0      0.0              if client_rank == i:
+   271         1       1000.0   1000.0      0.0                  continue
+   272         3     125100.0  41700.0      0.0              seeds_exchanged[i] = (seeds_exchanged[i] - a_s[i]) % q
+   273         1        1e+10    1e+10     21.2      seeds_share_gather = node.gather(seeds_exchanged, server_rank)
    274                                           
-   275         1        451.0    451.0      0.0      if is_server:
+   275         1       1800.0   1800.0      0.0      if is_server:
    276                                                   for i in range(client_size):
    277                                                       for rank in range(client_size):
    278                                                           if i == rank:
@@ -250,26 +250,26 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    282                                                               all_deltas[i][rank]) % q
    283                                                   seed1s_s = seeds_share_gather
    284                                               else:
-   285         1        171.0    171.0      0.0          seed2s = b_s
+   285         1       1000.0   1000.0      0.0          seed2s = b_s
    286                                           
-   287         1       5590.0   5590.0      0.0      timer.set_time_point("perm_share")
-   288         2      13656.0   6828.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   289         1      34244.0  34244.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   290         1       6422.0   6422.0      0.0          node.getTotalDataRecv()))
+   287         1      12900.0  12900.0      0.0      timer.set_time_point("perm_share")
+   288         2      16800.0   8400.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   289         1      29400.0  29400.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   290         1      13200.0  13200.0      0.0          node.getTotalDataRecv()))
    291                                           
    292                                               # share intersection size
-   293         1        501.0    501.0      0.0      if is_server:
+   293         1       1900.0   1900.0      0.0      if is_server:
    294                                                   pass
    295                                               else:
-   296         1        381.0    381.0      0.0          permute_length = None
-   297         1    2125784.0    2e+06      0.0      permute_length = global_comm.bcast(permute_length, root=server_rank)
+   296         1       1300.0   1300.0      0.0          permute_length = None
+   297         1 5856786200.0    6e+09     11.6      permute_length = global_comm.bcast(permute_length, root=server_rank)
    298                                           
    299                                               # sys.exit()
    300                                           
    301                                               # tgt dataset server send
-   302         1       2114.0   2114.0      0.0      round_inter = permute_length // chunk + (1 if permute_length % chunk != 0
+   302         1       6000.0   6000.0      0.0      round_inter = permute_length // chunk + (1 if permute_length % chunk != 0
    303                                                                                        else 0)
-   304         1        371.0    371.0      0.0      if is_server:
+   304         1       2000.0   2000.0      0.0      if is_server:
    305                                                   def tgt_dataset_send(rank):
    306                                                   # for rank in range(client_size):
    307                                                       with_targets = (rank == targets_rank)
@@ -314,42 +314,42 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    346                                                   with ThreadPoolExecutor(max_workers=client_size) as executor:
    347                                                       executor.map(tgt_dataset_send, range(client_size))
    348                                               else:
-   349         1       2255.0   2255.0      0.0          index = [0] * client_size
-   350         1      18655.0  18655.0      0.0          data = np.empty((chunk, features), dtype=np.int64)
-   351         1       1754.0   1754.0      0.0          targets = np.empty((chunk,target_length), dtype=np.int64)
-   352         2       3356.0   1678.0      0.0          for i in range(round_inter):
-   353         1   48114847.0    5e+07      0.4              recv = node.recv(source=server_rank, tag=i)
-   354         1       1072.0   1072.0      0.0              rest = len(recv[0])
+   349         1       3700.0   3700.0      0.0          index = [0] * client_size
+   350         1      26800.0  26800.0      0.0          data = np.empty((chunk, features), dtype=np.int64)
+   351         1       7000.0   7000.0      0.0          targets = np.empty((chunk,target_length), dtype=np.int64)
+   352         2       6800.0   3400.0      0.0          for i in range(round_inter):
+   353         1    5092200.0    5e+06      0.0              recv = node.recv(source=server_rank, tag=i)
+   354         1       4600.0   4600.0      0.0              rest = len(recv[0])
    355                                                       # print(rest)
-   356         4       1673.0    418.2      0.0              for rank in range(client_size):
-   357         3       1182.0    394.0      0.0                  if client_rank == rank:
-   358         2       4870.0   2435.0      0.0                      data[:rest, rank * sub_features:(rank + 1) *
-   359         2        460.0    230.0      0.0                           sub_features] = recv[0]
-   360         1        310.0    310.0      0.0                      if rank == targets_rank:
+   356         5      12300.0   2460.0      0.0              for rank in range(client_size):
+   357         4       8300.0   2075.0      0.0                  if client_rank == rank:
+   358         2      11600.0   5800.0      0.0                      data[:rest, rank * sub_features:(rank + 1) *
+   359         2       3300.0   1650.0      0.0                           sub_features] = recv[0]
+   360         1       1800.0   1800.0      0.0                      if rank == targets_rank:
    361                                                                   targets[:rest]= recv[1].reshape((rest, target_length))
-   362         1        210.0    210.0      0.0                      continue
-   363         6     635397.0 105899.5      0.0                  output_prg = mod_range(
-   364         2   20202854.0    1e+07      0.2                      shprg.genRandom(seed2s[rank][index[rank]:index[rank] + rest]),
-   365         4     472510.0 118127.5      0.0                        p).astype(np.int64)
-   366         4      33522.0   8380.5      0.0                  data[:rest, rank * sub_features:(rank + 1) *
-   367         4       3556.0    889.0      0.0                       sub_features] = output_prg[:, :sub_features]
-   368         2        731.0    365.5      0.0                  if rank == targets_rank:
-   369         1       2374.0   2374.0      0.0                      targets[:rest] = output_prg[:, sub_features:sub_features+target_length]
-   370         2       1864.0    932.0      0.0                  index[rank] += rest
-   371         1        301.0    301.0      0.0              if target_length == 1:
-   372         2     429960.0 214980.0      0.0                  node.tgt_dataset.add(data=data[:rest],
-   373         1       3426.0   3426.0      0.0                                       targets=targets[:rest].ravel())
-   374         1        321.0    321.0      0.0                  continue
+   362         1       1300.0   1300.0      0.0                      continue
+   363         9     131900.0  14655.6      0.0                  output_prg = mod_range(
+   364         3     542800.0 180933.3      0.0                      shprg.genRandom(seed2s[rank][index[rank]:index[rank] + rest]),
+   365         6      58500.0   9750.0      0.0                        p).astype(np.int64)
+   366         6      23100.0   3850.0      0.0                  data[:rest, rank * sub_features:(rank + 1) *
+   367         6      14600.0   2433.3      0.0                       sub_features] = output_prg[:, :sub_features]
+   368         3       5500.0   1833.3      0.0                  if rank == targets_rank:
+   369         1       7900.0   7900.0      0.0                      targets[:rest] = output_prg[:, sub_features:sub_features+target_length]
+   370         3       7200.0   2400.0      0.0                  index[rank] += rest
+   371         1       1700.0   1700.0      0.0              if target_length == 1:
+   372         2    1296400.0 648200.0      0.0                  node.tgt_dataset.add(data=data[:rest],
+   373         1       7100.0   7100.0      0.0                                       targets=targets[:rest].ravel())
+   374         1       1800.0   1800.0      0.0                  continue
    375                                                       node.tgt_dataset.add(data=data[:rest], targets=targets[:rest])
    376                                           
    377                                                   # print(node.tgt_dataset.targets[1])
    378                                           
-   379         1       2585.0   2585.0      0.0      timer.set_time_point("tgt_final ")
-   380         2       7573.0   3786.5      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
-   381         1      20008.0  20008.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
-   382         1       5791.0   5791.0      0.0          node.getTotalDataRecv()))
-   383         1       1182.0   1182.0      0.0      print("intersection size:{}".format(permute_length))
-   384         1      19356.0  19356.0      0.0      print(timer)
+   379         1      12100.0  12100.0      0.0      timer.set_time_point("tgt_final ")
+   380         2      21700.0  10850.0      0.0      print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
+   381         1      50000.0  50000.0      0.0          timer.currentlabel, global_rank, node.getTotalDataSent(),
+   382         1      15300.0  15300.0      0.0          node.getTotalDataRecv()))
+   383         1       4400.0   4400.0      0.0      print("intersection size:{}".format(permute_length))
+   384         1      52100.0  52100.0      0.0      print(timer)
    385                                           
-   386         1     112592.0 112592.0      0.0      file.close()
+   386         1   35946400.0    4e+07      0.1      file.close()
 

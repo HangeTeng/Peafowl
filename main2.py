@@ -54,27 +54,28 @@ def main():
     target_length = 1
     folder_path = "./data/SVM_{}_{}".format(examples, features)
 
-    # log
-    file = open("./data/log/SVM_{}_{}_log_{}.txt".format(examples, features,nodes), 'a')
+    # output
+    file = open("./data/log/SVM_{}_{}_log_{}.txt".format(examples, features, nodes), 'a')
     sys.stdout = file
     sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
     # shprg
-    n = 1
+    n = 8
     m = sub_features + target_length
     EQ = 128
     EP = 64
     q = 2**EQ
     p = 2**EP
     seedA = bytes(0x355678)
+    shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP, seedA=seedA)
 
+    # encoder
     precision_bits = 16
     encoder = FixedPointEncoder(precision_bits=precision_bits)
 
-    shprg = SHPRG(input=n, output=m, EQ=EQ, EP=EP, seedA=seedA)
-
+    # Communicator
     global_comm = MPI.COMM_WORLD
     global_rank = global_comm.Get_rank()
     global_size = global_comm.Get_size()
@@ -85,7 +86,6 @@ def main():
     client_rank = None if client_comm == MPI.COMM_NULL else client_comm.Get_rank(
     )
     client_size = client_grp.Get_size()
-
     is_server = False
     if global_rank == global_size - 1:
         is_server = True

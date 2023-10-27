@@ -1,43 +1,17 @@
-from src.utils.h5dataset import HDF5Dataset
-from src.utils.encoder import FixedPointEncoder
+import h5py
 
-if __name__ == "__main__":
+# 指定要创建的HDF5文件名
+file_name = "large_dataset.hdf5"
 
+# 创建一个HDF5文件，指定'w'模式以进行写入
+with h5py.File(file_name, 'w') as file:
+    # 这个文件在with语句块内创建并打开，之后会自动关闭。
 
-    # dataset
-    examples = 6
-    features = 60
-    chunk = 100
-    # sub_dataset
-    nodes = 3
-    sub_examples = examples * 5 // 6
-    sub_features = features // nodes
-    targets_rank = 0
-    folder_path = "./data/SVM_{}_{}".format(
-                examples, features)
-    
-    encoder = FixedPointEncoder()
-    
-    tgt = []
-    tgt_folder_path = folder_path + "/tgt"
-    for i in range(nodes):
-        tgt_path = "{}/SVM_{}_{}_{}-{}_tgt.hdf5".format(tgt_folder_path,
-                examples, features, i, nodes)
-        tgt.append(HDF5Dataset(tgt_path))
-    
-    a = tgt[0].data[...]
-    for i in range(1,nodes):
-        a += tgt[i].data[...]
-    print(encoder.decode(a))
+    # 创建一个大的数据集，例如一个包含随机数据的数据集
+    dataset_size = (10000, 100000)  # 指定数据集的大小
+    dataset = file.create_dataset("large_data", shape=dataset_size, dtype='int64')
 
-    a = tgt[0].targets[:]
-    for i in range(1,nodes):
-        a += tgt[i].targets[:]
-    print(encoder.decode(a))
-
-    src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path,
-                examples, features, 0, nodes)
-    src_dataset = HDF5Dataset(src_path)
-    print(src_dataset.data[...])
-    print(src_dataset.targets[...])
-    
+    # 将数据写入数据集，这里使用随机数据作为示例
+    import numpy as np
+    random_data = np.random.rand(*dataset_size).astype('float32')
+    dataset[:] = random_data

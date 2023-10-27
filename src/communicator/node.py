@@ -88,7 +88,7 @@ class Node():
                p=1 << 128,
                Sip="127.0.0.1:12222",
                ot_type=1,
-               num_threads=8):
+               num_threads=2):
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if recver is None else str(
             comm.Get_rank()) + "_" + str(recver) + "_" + str(tag)
@@ -110,7 +110,7 @@ class Node():
                p=1 << 128,
                Sip="127.0.0.1:12222",
                ot_type=1,
-               num_threads=8):
+               num_threads=2):
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if sender is None else str(sender) + "_" + str(
             comm.Get_rank()) + "_" + str(tag)

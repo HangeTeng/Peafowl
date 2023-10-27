@@ -118,8 +118,8 @@ def save_subset_h5(dataset,
             dataset, indices=[index], slice=slice,
             with_targets=with_targets)  # rank 0 get the targets
         count += 1
-        if count % 100 == 0:
-            print("generating sub_dataset:%.2f%%" % (count * 100 / len(indices)))
+        # if count % 100 == 0:
+        #     print("generating sub_dataset:%.2f%%" % (count * 100 / len(indices)))
         sub_dataset.add(data=subset_data, targets=subset_targets)
     sub_dataset.file.create_dataset("ids", data=indices)
     sub_dataset.close()

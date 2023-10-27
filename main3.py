@@ -45,7 +45,6 @@ def main():
     examples = int(arguments[0])
     features = int(arguments[1])
     chunk = 100
-
     # sub_dataset
     nodes = MPI.COMM_WORLD.Get_size() - 1
     sub_examples = examples * 5 // 6
@@ -54,7 +53,6 @@ def main():
     target_length = 1
     folder_path = "./data/SVM_{}_{}".format(examples, features)
 
-    # log
     file = open("./data/log/SVM_{}_{}_log_{}.txt".format(examples, features,nodes), 'a')
     sys.stdout = file
     sys.stdout = sys.__stdout__
@@ -97,20 +95,12 @@ def main():
     if is_server:
         node = Node(None, None, global_comm, client_comm)
         temp_dataset = []
-        temp_prg_dataset = []
         temp_folder_path = folder_path + "/temp"
         for i in range(client_size):
             temp_path = "{}/SVM_{}_{}_{}-{}_temp.hdf5".format(
                 temp_folder_path, examples, features, i, nodes)
             temp_dataset.append(
                 HDF5Dataset.empty(file_path=temp_path,
-                                  data_shape=(sub_features, ),
-                                  targets_shape=(),
-                                  dtype=np.int64))
-            temp_prg_path = "{}/SVM_{}_{}_{}-{}_temp_prg.hdf5".format(
-                temp_folder_path, examples, features, i, nodes)
-            temp_prg_dataset.append(
-                HDF5Dataset.empty(file_path=temp_prg_path,
                                   data_shape=(sub_features, ),
                                   targets_shape=(),
                                   dtype=np.int64))
@@ -224,9 +214,11 @@ def main():
             pre_permutes.append(find_permute(permutes[i], final_permutes[i]))
         pre_permutes.append(None)
 
+        print(pre_permutes)
         node.scatter(pre_permutes, server_rank)
     else:
         pre_permute = node.scatter(None, server_rank)
+        print(pre_permute)
 
     # sys.exit()
 
@@ -288,56 +280,17 @@ def main():
         node.getTotalDataRecv()))
     
 
-    # share intersection size
-    if is_server:
-        pass
-    else:
-        permute_length = None
-    permute_length = global_comm.bcast(permute_length, root=server_rank)
-
-
     #* share
     round_examples = sub_examples // chunk + (1 if sub_examples % chunk != 0
                                               else 0)
-    round_inter = permute_length // chunk + (1 if permute_length % chunk != 0
-                                            else 0)
     if is_server:
         def sharesend_thread(rank):
             for i in range(round_examples):
                 recv = node.recv(source=rank, tag=i)
                 temp_dataset[rank].add(data=recv[0], targets=recv[1])
-        
-        def tgt_dataset_send(rank):
-            with_targets = (rank == targets_rank)
 
-            data_to_client = np.empty((chunk, sub_features), dtype=np.int64)
-            targets_to_client = np.empty(
-                (chunk,
-                 target_length), dtype=np.int64) if with_targets else None
-            index = 0
-
-            for i in range(round_inter):
-                rest = min(permute_length - index, chunk)
-                for k in range(client_size):
-                    if k == rank:
-                        continue
-                    output_prg = mod_range(
-                        shprg.genRandom(seed1s_s[k][rank][index:index + rest]),
-                        p).astype(np.int64)
-                    data_to_client[:rest] += output_prg[:, :sub_features]
-                    if with_targets:
-                        targets_to_client[:rest] += output_prg[:, sub_features:sub_features+target_length]
-                index += rest
-                if target_length == 1:
-                    temp_prg_dataset[rank].add(data=data_to_client[:rest],
-                                     targets=targets_to_client[:rest].ravel() if with_targets else None)
-                    continue
-                temp_prg_dataset[rank].add(data=data_to_client[:rest],
-                                    targets=targets_to_client[:rest] if with_targets else None)
-
-        with ThreadPoolExecutor(max_workers=client_size+client_size) as executor:
+        with ThreadPoolExecutor(max_workers=client_size) as executor:
             executor.map(sharesend_thread, range(client_size))
-            executor.map(tgt_dataset_send, range(client_size))
     else:
         with_targets = node.src_dataset.with_targets
 
@@ -380,10 +333,21 @@ def main():
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
         timer.currentlabel, global_rank, node.getTotalDataSent(),
         node.getTotalDataRecv()))
-        
     
-    # tgt dataset server send
+    # sys.exit()
 
+    # share intersection size
+    if is_server:
+        pass
+    else:
+        permute_length = None
+    permute_length = global_comm.bcast(permute_length, root=server_rank)
+
+    # sys.exit()
+
+    # tgt dataset server send
+    round_inter = permute_length // chunk + (1 if permute_length % chunk != 0
+                                             else 0)
     if is_server:
         def tgt_dataset_send(rank):
         # for rank in range(client_size):
@@ -393,12 +357,12 @@ def main():
             targets_to_client = np.empty(
                 (chunk,
                  target_length), dtype=np.int64) if with_targets else None
-            index = [0]*client_size
+            index = 0
 
             for i in range(round_inter):
-                rest = min(permute_length - index[rank], chunk)
+                rest = min(permute_length - index, chunk)
                 for j in range(rest):
-                    perm_index = permutes[rank][index[rank] + j]
+                    perm_index = permutes[rank][index + j]
                     data_to_client[j] = temp_dataset[rank].data[perm_index]
                     if with_targets:
                         targets_to_client[j] = temp_dataset[rank].targets[
@@ -406,10 +370,13 @@ def main():
                 for k in range(client_size):
                     if k == rank:
                         continue
-                    data_to_client[:rest] += temp_prg_dataset[rank].data[index[rank]:index[rank] + rest]
+                    output_prg = mod_range(
+                        shprg.genRandom(seed1s_s[k][rank][index:index + rest]),
+                        p).astype(np.int64)
+                    data_to_client[:rest] += output_prg[:, :sub_features]
                     if with_targets:
-                        targets_to_client[:rest] += temp_prg_dataset[rank].targets[index[rank]:index[rank] + rest].reshape((rest, target_length))
-                index[rank] += rest
+                        targets_to_client[:rest] += output_prg[:, sub_features:sub_features+target_length]
+                index += rest
                 if target_length == 1:
                     node.send(
                         (data_to_client[:rest], targets_to_client[:rest].ravel()
@@ -422,7 +389,6 @@ def main():
                         targets_to_client[:rest] if with_targets else None),
                     dest=rank,
                     tag=i)
-                
 
         with ThreadPoolExecutor(max_workers=client_size) as executor:
             executor.map(tgt_dataset_send, range(client_size))
@@ -433,6 +399,7 @@ def main():
         for i in range(round_inter):
             recv = node.recv(source=server_rank, tag=i)
             rest = len(recv[0])
+            # print(rest)
             for rank in range(client_size):
                 if client_rank == rank:
                     data[:rest, rank * sub_features:(rank + 1) *

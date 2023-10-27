@@ -55,10 +55,10 @@ def lsvm_gen_split(
 if __name__ == '__main__':
     import subprocess
     
-    for sub_examples in [10000]:
+    for sub_examples in [5000]:
         examples = sub_examples * 6 // 5
-        for sub_features in [25000]:
-            for nodes in [5]:
+        for sub_features in [2000]:
+            for nodes in [3]:
                 features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,

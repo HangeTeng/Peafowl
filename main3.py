@@ -60,7 +60,7 @@ def main():
     secret_key = "secret_key"
 
     # shprg
-    n = 1
+    n = 2
     m = sub_features + target_length
     EQ = 128
     EP = 64
@@ -100,9 +100,9 @@ def main():
             temp_path = "{}/SVM_{}_{}_{}-{}_temp.hdf5".format(
                 temp_folder_path, examples, features, i, nodes)
             temp_dataset.append(
-                HDF5Dataset.empty(file_path=temp_path,
+                HDF5Dataset.new(file_path=temp_path,
                                   data_shape=(sub_features, ),
-                                  targets_shape=(),
+                                  target_shape=(),
                                   dtype=np.int64))
     else:
         src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path, examples,
@@ -112,9 +112,9 @@ def main():
         tgt_folder_path = folder_path + "/tgt"
         tgt_path = "{}/SVM_{}_{}_{}-{}_tgt.hdf5".format(
             tgt_folder_path, examples, features, global_rank, nodes)
-        tgt_dataset = HDF5Dataset.empty(file_path=tgt_path,
+        tgt_dataset = HDF5Dataset.new(file_path=tgt_path,
                                         data_shape=(features, ),
-                                        targets_shape=(),
+                                        target_shape=(),
                                         dtype=np.int64)
         node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
 

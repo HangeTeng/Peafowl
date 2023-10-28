@@ -235,9 +235,9 @@ if __name__ == "__main__":
         src_dataset = HDF5Dataset(file_path=src_path)
         tgt_path = "../../data/SVM_{}_{}_{}-{}_share.hdf5".format(
             examples, features, global_rank, nodes)
-        tgt_dataset = HDF5Dataset.empty(file_path=tgt_path,
+        tgt_dataset = HDF5Dataset.new(file_path=tgt_path,
                                         data_shape=(features, ),
-                                        targets_shape=(),
+                                        target_shape=(),
                                         dtype=np.int64)
 
 

@@ -49,16 +49,34 @@ class HDF5Dataset(Dataset):
         return cls(file_path)
 
     @classmethod
-    def empty(cls,
+    def new(cls,
               file_path: str,
               data_shape,
-              targets_shape,
+              target_shape,
               dtype=np.float32):
-        if any([data_shape is None, targets_shape is None]):
+        if any([data_shape is None, target_shape is None]):
             raise ValueError("data_shape or targets_shape cannot be None")
         data = np.empty((0, ) + data_shape, dtype=dtype)
-        targets = np.empty((0, ) + targets_shape, dtype=dtype)
+        targets = np.empty((0, ) + target_shape, dtype=dtype)
         return cls.from_array(file_path, data, targets)
+    
+    @classmethod
+    def empty(cls, file_path: str, data_shape, targets_shape,dtype=np.float32):
+        if all(
+            [os.path.exists(file_path), HDF5Dataset.allow_overwite is False]):
+            raise ValueError(
+                "file already exists and do not allow overwriting")
+        if any([data_shape is None, targets_shape is None]):
+            raise ValueError("data or targets cannot be None")
+
+        with h5py.File(file_path, 'w') as file:
+            file.create_dataset("data",
+                                shape=data_shape, dtype=dtype)
+            file.create_dataset("targets",
+                                shape=targets_shape,
+                                dtype=dtype)
+        return cls(file_path)
+
 
     def __len__(self):
         return len(self.data)
@@ -79,8 +97,16 @@ class HDF5Dataset(Dataset):
             self.targets[-targets.shape[0]:] = targets
         if ids is not None:
             self.ids.resize((self.ids.shape[0] + ids.shape[0], ) +
-                            targets.shape[1:])
+                            ids.shape[1:])
             self.ids[-ids.shape[0]:] = ids
+
+    def resize(self, data_shape, targets_shape=None, ids_shape=None):
+        self.data.resize(data_shape)
+        if targets_shape is not None:
+            self.targets.resize(targets_shape)
+        if ids_shape is not None:
+            self.ids.resize(ids_shape)
+
 
     def close(self):
         self.file.close()
@@ -108,9 +134,9 @@ def save_subset_h5(dataset,
     Extracts a subset of data into a HDF5 file.
     also save the indices.
     '''
-    sub_dataset = HDF5Dataset.empty(file_path=file_path,
+    sub_dataset = HDF5Dataset.new(file_path=file_path,
                                     data_shape=(slice_features, ),
-                                    targets_shape=(),
+                                    target_shape=(),
                                     dtype=np.float32)
     count = 0
     for index in indices:
@@ -213,9 +239,9 @@ if __name__ == '__main__':
             os.mkdir(folder)
         file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         print("generating dataset in file: {}".format(file_path))
-        dataset = HDF5Dataset.empty(file_path=file_path,
+        dataset = HDF5Dataset.new(file_path=file_path,
                                     data_shape=(features, ),
-                                    targets_shape=(),
+                                    target_shape=(),
                                     dtype=np.float32)
         rounds = math.ceil(examples / chunk)
         for i in range(rounds):

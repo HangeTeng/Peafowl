@@ -19,9 +19,9 @@ def lsvm_gen_split(
             os.mkdir(folder)
         file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         print("generating dataset in file: {}".format(file_path))
-        dataset = HDF5Dataset.empty(file_path=file_path,
+        dataset = HDF5Dataset.new(file_path=file_path,
                                 data_shape=(features, ),
-                                targets_shape=(),dtype=np.float32)
+                                target_shape=(),dtype=np.float32)
         rounds = math.ceil(examples / chunk)
         for i in range(rounds):
             print("generating dataset:%.2f%%" % (i * 100 / rounds))
@@ -37,7 +37,7 @@ def lsvm_gen_split(
         file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         dataset = HDF5Dataset(file_path=file_path)
         slice_features = features // nodes
-        print(slice_features)
+        # print(slice_features)
         for i in range(nodes):
             sub_file_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder, 
                 examples, features, i, nodes)
@@ -55,17 +55,17 @@ def lsvm_gen_split(
 if __name__ == '__main__':
     import subprocess
     
-    for sub_examples in [5000]:
+    for sub_examples in [500]:
         examples = sub_examples * 6 // 5
-        for sub_features in [2000]:
+        for sub_features in [200]:
             for nodes in [3]:
                 features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,
                     nodes = nodes,
                     sub_examples = sub_examples)
-                subprocess.run("mpiexec -n {} python3 main.py {} {}".format(nodes + 1, examples, features), shell=True)
-                # subprocess.run("mpiexec -n {} python3 main2.py {} {}".format(nodes + 1, examples, features), shell=True)
+                # subprocess.run("mpiexec -n {} python3 main.py {} {}".format(nodes + 1, examples, features), shell=True)
+                subprocess.run("mpiexec -n {} python3 main2.py {} {}".format(nodes + 1, examples, features), shell=True)
 
 
 

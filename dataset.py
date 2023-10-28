@@ -19,9 +19,9 @@ def lsvm_gen_split(
             os.mkdir(folder)
         file_path = "{}/SVM_{}_{}.hdf5".format(folder, examples, features)
         print("generating dataset in file: {}".format(file_path))
-        dataset = HDF5Dataset.empty(file_path=file_path,
+        dataset = HDF5Dataset.new(file_path=file_path,
                                 data_shape=(features, ),
-                                targets_shape=(),dtype=np.float32)
+                                target_shape=(),dtype=np.float32)
         rounds = math.ceil(examples / chunk)
         for i in range(rounds):
             print("generating dataset:%.2f%%" % (i * 100 / rounds))
@@ -55,10 +55,10 @@ def lsvm_gen_split(
 if __name__ == '__main__':
     import subprocess
     
-    for sub_examples in [10000]:
+    for sub_examples in [50]:
         examples = sub_examples * 6 // 5
-        for sub_features in [25000]:
-            for nodes in [5]:
+        for sub_features in [20]:
+            for nodes in [3]:
                 features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,

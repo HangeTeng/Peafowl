@@ -38,6 +38,6 @@ if __name__ == "__main__":
     src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path,
                 examples, features, 0, nodes)
     src_dataset = HDF5Dataset(src_path)
-    print(src_dataset.data[...])
+    # print(src_dataset.data[...])
     print(src_dataset.targets[...])
     

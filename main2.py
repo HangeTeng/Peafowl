@@ -95,8 +95,8 @@ def main():
     server_rank = global_size - 1
 
     # thread
-    max_workers = 3
-    server_max_worker = 20
+    max_workers = 100
+    server_max_worker = max_workers * 3
 
     # other 
     timer = Timer()
@@ -465,6 +465,7 @@ def main():
                             if with_targets else None),
                             dest=rank,
                             tag=round)
+                return
             node.send((data_to_client[:rest],
                         targets_to_client[:rest] if with_targets else None),
                         dest=rank,

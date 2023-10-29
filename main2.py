@@ -4,8 +4,11 @@ import numpy as np
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor
-from line_profiler import LineProfiler
 import random
+
+from line_profiler import LineProfiler
+import cProfile
+
 
 from src.communicator.node import Node
 from src.utils.h5dataset import HDF5Dataset
@@ -45,7 +48,7 @@ def main():
     arguments = sys.argv[1:]
     examples = int(arguments[0])
     features = int(arguments[1])
-    chunk = 100
+    chunk = 1000
 
     # sub_dataset
     nodes = MPI.COMM_WORLD.Get_size() - 1
@@ -57,10 +60,10 @@ def main():
 
     # output
     file = open(
-        "./data/log/SVM_{}_{}_log_{}.txt".format(examples, features, nodes),
+        "./data/log/poc2_SVM_{}_{}_log_{}.txt".format(examples, features, nodes),
         'a')
     sys.stdout = file
-    sys.stdout = sys.__stdout__
+    # sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
@@ -95,8 +98,8 @@ def main():
     server_rank = global_size - 1
 
     # thread
-    max_workers = 100
-    server_max_worker = max_workers * 3
+    max_workers = 10
+    server_max_worker = max_workers * client_size
 
     # other 
     timer = Timer()
@@ -358,16 +361,19 @@ def main():
                 temp_prg_dataset[rank].targets[index:index + rest]=targets_to_client[:rest].ravel() if target_length == 1 else targets_to_client[:rest]
             return
 
-        with ThreadPoolExecutor(max_workers=client_size +
-                                client_size) as executor:
+        with ThreadPoolExecutor(max_workers=server_max_worker) as executor:
             sharerecv_args = [(rank,round)
                          for round in range(round_examples)
                          for rank in range(client_size)]
             tgt_prg_cal_args = [(rank,round)
                          for round in range(round_inter)
                          for rank in range(client_size)]
-            executor.map(tgt_prg_cal_thread, tgt_prg_cal_args)
-            executor.map(sharerecv_thread, sharerecv_args)
+            for i in range(round_examples * client_size):
+                executor.submit(sharerecv_thread, sharerecv_args[i])
+                if i < round_inter * client_size:
+                    executor.submit(tgt_prg_cal_thread, tgt_prg_cal_args[i])
+            # executor.map(tgt_prg_cal_thread, tgt_prg_cal_args)
+            # executor.map(sharerecv_thread, sharerecv_args)
         # print(temp_prg_dataset[0].data[0,0])
         # print(temp_dataset[0].data[2,0])
         # print(temp_dataset[0].data[2,0]+temp_prg_dataset[0].data[0,0])
@@ -533,3 +539,5 @@ if __name__ == "__main__":
     
     with open(output_filename, 'w') as output_file:
         profiler.print_stats(stream=output_file)
+    # output_filename = f'./data/lprof/poc2_profile_{examples}_{features}_rank_{rank}.cprof.txt'
+    # cProfile.run("main()", output_filename, sort="cumulative")

@@ -10,7 +10,7 @@ def lsvm_gen_split(
     features = 6000,
     nodes = 3,
     sub_examples = 5000,
-    chunk = 100,
+    chunk = 1000,
     lsvm_gen = True,
     lsvm_split = True):
     if lsvm_gen:
@@ -44,6 +44,7 @@ def lsvm_gen_split(
             indices = random.sample(range(examples), sub_examples)
             _slice = slice(slice_features * i, slice_features * (i + 1))
             save_subset_h5(dataset=dataset,file_path=sub_file_path,indices=indices,slice=_slice, slice_features = slice_features,with_targets=(i == 0), dtype=np.float32)
+            print(f"generate subdataset {i} completed")
         dataset.close()
     temp_folder_path = folder + "/temp"
     if not os.path.exists(temp_folder_path):
@@ -55,10 +56,10 @@ def lsvm_gen_split(
 if __name__ == '__main__':
     import subprocess
     
-    for sub_examples in [500]:
+    for sub_examples in [10000]:
         examples = sub_examples * 6 // 5
-        for sub_features in [200]:
-            for nodes in [3]:
+        for sub_features in [2000]: #[2000 * i for i in range(2,5)]:
+            for nodes in [3,4,6,7,8,9,10]:
                 features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,

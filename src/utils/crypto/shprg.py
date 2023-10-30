@@ -95,7 +95,8 @@ class SHPRG(object):
         return A
     
     
-    # @profile
+    # from numba import jit
+    # @jit
     def genRandom(self, s_np):
         A = self.A
         p = self.p

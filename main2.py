@@ -42,7 +42,8 @@ class Timer:
 
         return output
 
-
+# from numba import jit
+# @jit
 def main():
     # dataset
     arguments = sys.argv[1:]
@@ -98,7 +99,7 @@ def main():
     server_rank = global_size - 1
 
     # thread
-    max_workers = 10
+    max_workers = 10 * client_size
     server_max_worker = max_workers * client_size
 
     # other 
@@ -185,7 +186,9 @@ def main():
                          for input_dim in range(n)
                          for rank in range(client_size)]
             # print(task_args)
-            executor.map(STsend_thread, task_args)
+            # executor.map(STsend_thread, task_args)
+            for args in task_args:
+                executor.submit(STsend_thread, args)
         # print(all_deltas[0][1][0][0])
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
@@ -206,7 +209,9 @@ def main():
             task_args = [(dset_rank, input_dim)
                          for dset_rank in range(client_size)
                          for input_dim in range(n)]
-            executor.map(STrecv_thread, task_args)
+            # executor.map(STrecv_thread, task_args)
+            for args in task_args:
+                executor.submit(STrecv_thread, args)
         # if client_rank == 0:
         #     permute = [2, 3, 4, 0, 1]
         #     print((a_s[1][2][0]-b_s[1][0][0])%q)
@@ -422,7 +427,10 @@ def main():
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             sharesend_args = [(round)
                          for round in range(round_examples)]
-            executor.map(sharesend_thread, sharesend_args)
+            # executor.map(sharesend_thread, sharesend_args)
+            for args in sharesend_args:
+                executor.submit(sharesend_thread, args)
+            
 
     timer.set_time_point("dset_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
@@ -481,7 +489,9 @@ def main():
             tgt_send_args = [(rank,round)
                          for round in range(round_inter)
                          for rank in range(client_size)]
-            executor.map(tgt_send_thread, tgt_send_args)
+            # executor.map(tgt_send_thread, tgt_send_args)
+            for args in tgt_send_args:
+                executor.submit(tgt_send_thread, args)
     else:
         node.tgt_dataset.resize(data_shape = (inter_length,features), targets_shape = (inter_length,) if target_length == 1 else
                     (inter_length, target_length))
@@ -511,7 +521,9 @@ def main():
             tgt_recv_args = [(round, rank)
                          for round in range(round_inter)
                          for rank in range(client_size)]
-            executor.map(tgt_recv_thread, tgt_recv_args)
+            # executor.map(tgt_recv_thread, tgt_recv_args)
+            for args in tgt_recv_args:
+                executor.submit(tgt_recv_thread, args)
 
     timer.set_time_point("tgt_final ")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(

@@ -58,8 +58,8 @@ if __name__ == '__main__':
     
     for sub_examples in [10000]:
         examples = sub_examples * 6 // 5
-        for sub_features in [2000]: #[2000 * i for i in range(2,5)]:
-            for nodes in [3,4,6,7,8,9,10]:
+        for sub_features in [4000,6000,8000,10000]: #[2000 * i for i in range(2,5)]:
+            for nodes in [5]:
                 features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,

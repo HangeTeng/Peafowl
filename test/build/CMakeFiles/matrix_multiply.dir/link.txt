@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared  -o libmatrix_multiply.so CMakeFiles/matrix_multiply.dir/matrix_multiply.cpp.o 

@@ -56,16 +56,16 @@ def lsvm_gen_split(
 if __name__ == '__main__':
     import subprocess
     
-    for sub_examples in [10000]:
+    for sub_examples in [5000]:
         examples = sub_examples * 6 // 5
-        for sub_features in [4000,6000,8000,10000]: #[2000 * i for i in range(2,5)]:
+        for sub_features in [6000]: #[2000 * i for i in range(2,5)]:
             for nodes in [5]:
                 features = nodes * sub_features
                 lsvm_gen_split(examples = examples,
                     features = features,
                     nodes = nodes,
                     sub_examples = sub_examples)
-                # subprocess.run("mpiexec -n {} python3 main.py {} {}".format(nodes + 1, examples, features), shell=True)
+                subprocess.run("mpiexec -n {} python3 main.py {} {}".format(nodes + 1, examples, features), shell=True)
                 subprocess.run("mpiexec -n {} python3 main2.py {} {}".format(nodes + 1, examples, features), shell=True)
 
 

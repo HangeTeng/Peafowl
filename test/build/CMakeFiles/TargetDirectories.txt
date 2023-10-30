@@ -1,0 +1,3 @@
+/home/mSAID/test/build/CMakeFiles/matrix_multiply.dir
+/home/mSAID/test/build/CMakeFiles/edit_cache.dir
+/home/mSAID/test/build/CMakeFiles/rebuild_cache.dir

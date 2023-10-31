@@ -26,6 +26,7 @@ if __name__ == "__main__":
         tgt.append(HDF5Dataset(tgt_path))
     
     a = tgt[0].data[...]
+   
     for i in range(1,nodes):
         a += tgt[i].data[...]
     print(encoder.decode(a))
@@ -40,4 +41,5 @@ if __name__ == "__main__":
     src_dataset = HDF5Dataset(src_path)
     # print(src_dataset.data[...])
     print(src_dataset.targets[...])
+    print(a.dtype)
     

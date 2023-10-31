@@ -130,7 +130,7 @@ class SHPRG(object):
 
         output = np.empty((s_np.shape[0], A.shape[1]), dtype=object)
         np.dot(s_np, A, out=output)
-        np.mod(output, q, out=output)
+        # np.mod(output, q, out=output)
         np.multiply(output, p, out=output)
         np.floor_divide(output, q, out=output)
         np.mod(output, p, out=output)
@@ -147,8 +147,10 @@ class SHPRG(object):
 
     def genRandom_128_64(self, s_np):
         A = self.__split_array(self.A)
+        # print(A)
         s_np_64 = self.__split_array(s_np)
-        return np.array(lwr(s_np_64, A))
+        # print(s_np_64)
+        return np.array(lwr(s_np_64, A),dtype=np.uint64)
 
     def __split_array(self, arr, split_num=2):
         shape = arr.shape
@@ -156,21 +158,37 @@ class SHPRG(object):
         for i in range(split_num):
             arr_split[..., i] = (arr >> (i * 64)) & 0xFFFFFFFFFFFFFFFF
         return arr_split
+    
 
 
 if __name__ == "__main__":
-    n = 8
-    m = 100000
+    n = 1
+    m = 1
     EQ = 128
     EP = 64
-    load_A = './data/prg/A_n{}_m{}_q{}_p{}.npy'.format(n, m, EQ, EP)
-    # load_A = ""
+    # load_A = './data/prg/A_n{}_m{}_q{}_p{}.npy'.format(n, m, EQ, EP)
+    load_A = ""
     prg = SHPRG(input=n, output=m, EQ=EQ, EP=EP, load_A=load_A)
-    s1 = np.array([[i + 1 for i in range(n)]] * 1000, dtype=np.uint64)
+    s1 = np.array([[i + 1 for i in range(n)]] * 1, dtype=np.uint64)
     print(s1.shape)
     print(prg.A.shape)
-    # s2 = np.array([[78 for _ in range(n)]]*1000)
-    # s3 = np.array([[i+1+78 for i in range(n)]]*1000)
+    s2 = np.array([[78 for _ in range(n)]]*1, dtype=np.uint64)
+    s3 = np.array([[i+1+78 for i in range(n)]]*1, dtype=np.uint64)
+
+    s1 = np.array([[265197659641773038295820696019437708809]],dtype=object)
+    s2 = np.array([[75084707279165425167553911412330502767]],dtype=object)
+    s3 = np.array([[100], [110], [120], [130], [140]],dtype=np.uint64)
+
+    # print(s1)
+    # print(s2)
+    # print(s3)
+    # print(prg.A)
+
+    def mod_range(a, p):
+        "convert to  [-p/2, p/2 - 1]"
+        r = (a % p) - p // 2
+        return r.astype(np.int64)
+    p =2**EP
 
     # a = prg.genRandom(s1)
     # # print(a)
@@ -179,12 +197,20 @@ if __name__ == "__main__":
     # a = prg.genRandom3(s1)
     # print(a)
     a = prg.genRandom(s1)
-    # print(a)
+    b = prg.genRandom(s2)
+    c = prg.genRandom(s3)
 
-    # print(a.shape)
-    # b = prg.genRandom(s2)
-    # c = prg.genRandom(s3)
-    # for i in range(m):
-    #     x = (a[0][i] + b[0][i] - c[0][i]) % 2**EP
-    #     if(x != 2**EP-1 and x>1):
-    #         print("error!")
+    print(a)
+    print(mod_range(a, p))
+    print(b)
+    print(mod_range(b, p))
+    print(a+b)
+    print(mod_range(a+b, p))
+    print()
+    print(c)
+    print(mod_range(c, p))
+    for i in range(m):
+        x = mod_range(a+b, p) - mod_range(c, p)
+        print(x)
+        if(x != 2**EP-1 and x>1):
+            print("error!")

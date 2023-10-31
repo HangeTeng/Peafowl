@@ -158,7 +158,7 @@ def main():
             all_indices = list(range(sub_examples))
             random.shuffle(all_indices)
             permutes.append(all_indices)
-        # print(permutes)
+        print(permutes)
     else:
         pass
 
@@ -303,10 +303,10 @@ def main():
                         permutes[send_rank]] +
                     all_deltas[recv_rank][send_rank]) % q
         seed1s_s = seeds_share_gather
-        # print(seed1s_s[0][1][0][0])
+        print(seed1s_s[0][1][0][0])
     else:
         seed2s = b_s
-        # print(b_s[1][0][0])
+        print(b_s[1][0][0])
 
     timer.set_time_point("perm_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
@@ -360,6 +360,9 @@ def main():
                                                               rest]),
                     p).astype(np.int64)
                 data_to_client[:rest] += output_prg[:, :sub_features]
+                if rank == 0:
+                    print(output_prg[0,0])
+                    print(seed1s_s[recv_rank][0][0][0])
                 if with_targets:
                     targets_to_client[:rest] += output_prg[:, sub_features:
                                                            sub_features +
@@ -367,6 +370,8 @@ def main():
 
             temp_prg_dataset[rank].data[index:index +
                                         rest] = data_to_client[:rest]
+            
+                
             if with_targets:
                 temp_prg_dataset[rank].targets[
                     index:index + rest] = targets_to_client[:rest].ravel(
@@ -386,9 +391,9 @@ def main():
                     executor.submit(tgt_prg_cal_thread, tgt_prg_cal_args[i])
             # executor.map(tgt_prg_cal_thread, tgt_prg_cal_args)
             # executor.map(sharerecv_thread, sharerecv_args)
-        # print(temp_prg_dataset[0].data[0,0])
-        # print(temp_dataset[0].data[2,0])
-        # print(temp_dataset[0].data[2,0]+temp_prg_dataset[0].data[0,0])
+        print(temp_prg_dataset[0].data[0,0])
+        print(temp_dataset[0].data[2,0])
+        print(temp_dataset[0].data[2,0]+temp_prg_dataset[0].data[0,0])
     else:
         with_targets = node.src_dataset.with_targets
 
@@ -417,6 +422,11 @@ def main():
                     shprg.genRandom(seeds[k][index:index + rest]),
                     p).astype(np.int64)
                 data_to_server[:rest] -= output_prg[:, :sub_features]
+                if client_rank ==0:
+                    print(seeds[k][index:index + rest])
+                    print(data_to_server[2,0])
+                    print(output_prg[2,0])
+                    
                 if with_targets:
                     targets_to_server[:rest] -= output_prg[:, sub_features:
                                                            sub_features +
@@ -473,18 +483,19 @@ def main():
                 if with_targets:
                     targets_to_client[j] = temp_dataset[rank].targets[
                         perm_index].reshape((1, target_length))
-            # if rank == 0:
-            #     print(data_to_client[0,0])
-            #     print(temp_prg_dataset[rank].data[0,0])
-            #     print(data_to_client[0,0]+temp_prg_dataset[rank].data[0,0])
+            if rank == 0:
+                print(data_to_client[0,0])
+                print(temp_prg_dataset[rank].data[0,0])
+                print(data_to_client[0,0]+temp_prg_dataset[rank].data[0,0])
 
             data_to_client[:rest] += temp_prg_dataset[rank].data[index:index +
                                                                  rest]
+
             if with_targets:
                 targets_to_client[:rest] += temp_prg_dataset[rank].targets[
                     index:index + rest].reshape((rest, target_length))
-            # if rank == 0:
-            #     print(data_to_client[0,0])
+            if rank == 0:
+                print(data_to_client[0,0])
             if target_length == 1:
                 node.send(
                     (data_to_client[:rest], targets_to_client[:rest].ravel()
@@ -522,10 +533,14 @@ def main():
                                       sub_features] = recv[0]
                 if rank == targets_rank:
                     node.tgt_dataset.targets[index:index + rest] = recv[1]
+                if rank == 0:
+                    print(recv[0][0])
                 return
             output_prg = mod_range(
                 shprg.genRandom(seed2s[rank][index:index + rest]),
                 p).astype(np.int64)
+            if rank == 0:
+                print(output_prg[0,0])
 
             node.tgt_dataset.data[index:index + rest,
                                   rank * sub_features:(rank + 1) *
@@ -543,7 +558,8 @@ def main():
                              for rank in range(client_size)]
             # executor.map(tgt_recv_thread, tgt_recv_args)
             for args in tgt_recv_args:
-                executor.submit(tgt_recv_thread, args)
+                # executor.submit(tgt_recv_thread, args)
+                tgt_recv_thread(args)
 
     timer.set_time_point("tgt_final ")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(

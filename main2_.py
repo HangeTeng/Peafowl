@@ -64,7 +64,7 @@ def main():
         "./data/log/poc2_SVM_{}_{}_log_{}.txt".format(examples, features, nodes),
         'a')
     sys.stdout = file
-    # sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
@@ -382,9 +382,9 @@ def main():
                     executor.submit(tgt_prg_cal_thread, tgt_prg_cal_args[i])
             # executor.map(tgt_prg_cal_thread, tgt_prg_cal_args)
             # executor.map(sharerecv_thread, sharerecv_args)
-        # print(temp_prg_dataset[0].data[0,0])
-        # print(temp_dataset[0].data[2,0])
-        # print(temp_dataset[0].data[2,0]+temp_prg_dataset[0].data[0,0])
+        print(temp_prg_dataset[0].data[0,0])
+        print(temp_dataset[0].data[2,0])
+        print(temp_dataset[0].data[2,0]+temp_prg_dataset[0].data[0,0])
     else:
         with_targets = node.src_dataset.with_targets
 

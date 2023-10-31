@@ -15,7 +15,7 @@ std::vector<std::vector<uint64_t>> lwr_128_64(
     int p = B[0].size();
 
     std::vector<std::vector<uint64_t>> result(n, std::vector<uint64_t>(p, 0));
-    uint128_t inter;
+    uint128_t inter = 0;
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
@@ -23,6 +23,7 @@ std::vector<std::vector<uint64_t>> lwr_128_64(
                 inter += uint64_2_uint128(A[i][k]) * uint64_2_uint128(B[k][j]);
             }
             result[i][j] = (inter >> (128-64)) & 0xFFFFFFFFFFFFFFFFULL;
+            inter = 0;
         }
     }
     return result;

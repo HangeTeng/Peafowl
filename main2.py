@@ -101,6 +101,7 @@ def main():
     # thread
     max_worker = 10 * client_size
     server_max_worker = max_worker * client_size
+    num_threads = 32
 
     # other
     timer = Timer()
@@ -176,7 +177,8 @@ def main():
                 permute=permutes[dset_rank],
                 recver=rank,
                 tag=dset_rank + input_dim * 100,
-                Sip="127.0.0.1:12233")
+                Sip="127.0.0.1:12233",
+                num_threads = num_threads)
 
         with ThreadPoolExecutor(max_workers=server_max_worker) as executor:
             task_args = [(rank, dset_rank, input_dim)
@@ -201,7 +203,8 @@ def main():
                     size=sub_examples,
                     sender=server_rank,
                     tag=dset_rank + input_dim * 100,
-                    Sip="127.0.0.1:12233")
+                    Sip="127.0.0.1:12233",
+                num_threads = num_threads)
 
         with ThreadPoolExecutor(max_workers=max_worker) as executor:
             task_args = [(dset_rank, input_dim)

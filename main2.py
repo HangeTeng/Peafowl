@@ -101,7 +101,7 @@ def main():
     # thread
     max_worker = 10 * client_size
     server_max_worker = max_worker * client_size
-    num_threads = 32
+    num_threads = 1
 
     # other
     timer = Timer()
@@ -177,7 +177,8 @@ def main():
                 permute=permutes[dset_rank],
                 recver=rank,
                 tag=dset_rank + input_dim * 100,
-                Sip="127.0.0.1:12233",
+                Sip="127.0.0.1:"+str(12233+rank),
+                # Sip="127.0.0.1:12233",
                 num_threads = num_threads)
 
         with ThreadPoolExecutor(max_workers=server_max_worker) as executor:
@@ -203,7 +204,8 @@ def main():
                     size=sub_examples,
                     sender=server_rank,
                     tag=dset_rank + input_dim * 100,
-                    Sip="127.0.0.1:12233",
+                    Sip="127.0.0.1:"+str(12233+client_rank),
+                    # Sip="127.0.0.1:12233",
                 num_threads = num_threads)
 
         with ThreadPoolExecutor(max_workers=max_worker) as executor:
@@ -213,6 +215,7 @@ def main():
             # executor.map(STrecv_thread, task_args)
             for args in task_args:
                 executor.submit(STrecv_thread, args)
+                # STrecv_thread(args)
         # if client_rank == 0:
         #     permute = [2, 3, 4, 0, 1]
         #     print((a_s[1][2][0]-b_s[1][0][0])%q)
@@ -221,6 +224,9 @@ def main():
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
         timer.currentlabel, global_rank, node.getTotalDataSent(),
         node.getTotalDataRecv()))
+    
+    print(timer)
+    return
 
     #* encrypted ID
     if is_server:

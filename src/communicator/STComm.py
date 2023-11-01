@@ -43,7 +43,7 @@ if __name__ == "__main__":
     size = 60
     p =1<<128
     num_threads = 1
-    Sip = "127.0.0.1:12222"
+    # Sip = "127.0.0.1:12222"
     # dest = range(size)
     permute = range(size-1, -1, -1)
 
@@ -52,18 +52,18 @@ if __name__ == "__main__":
     # sender = Sender(4)
     # print("Sender!")
 
-    def receiver_process(result_queue):
+    def receiver_process(result_queue, sessionHint, Sip):
         receiver = Receiver(4)
         print("receiver_process!")
         print("receiver total sent"+str(receiver.getTotalDataSent()))
-        a = receiver.run(size=size, sessionHint="1", p=p, Sip=Sip, num_threads=num_threads)
+        a = receiver.run(size=size, sessionHint=sessionHint, p=p, Sip=Sip, num_threads=num_threads)
         print(a.dtype)
         print("receiver run!")
         result_queue.put(a)
 
-    def sender_process(result_queue):
+    def sender_process(result_queue, sessionHint, Sip):
         sender = Sender(4)
-        a = sender.run(size=size, permute=permute,sessionHint="1", p=p, Sip=Sip, num_threads=num_threads)
+        a = sender.run(size=size, permute=permute,sessionHint=sessionHint, p=p, Sip=Sip, num_threads=num_threads)
         print("sender run!")
         result_queue.put(a)
 
@@ -71,15 +71,24 @@ if __name__ == "__main__":
     result_queue_send = multiprocessing.Queue()
     
     
-    receiver_proc = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,))
-    sender_proc = multiprocessing.Process(target=sender_process, args=(result_queue_send,))
+    receiver_proc = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,"1","127.0.0.1:12222"))
+    sender_proc = multiprocessing.Process(target=sender_process, args=(result_queue_send,"1","127.0.0.1:12222"))
+    receiver_proc2 = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,"2","127.0.0.1:12232"))
+    sender_proc2 = multiprocessing.Process(target=sender_process, args=(result_queue_send,"2","127.0.0.1:12232"))
+    
+
     
     print("start!")
     receiver_proc.start()
     sender_proc.start()
+    receiver_proc2.start()
+    sender_proc2.start()
     
     receiver_proc.join()
     sender_proc.join()
+    receiver_proc2.join()
+    sender_proc2.join()
+
 
     print("send get")
     send = result_queue_send.get()

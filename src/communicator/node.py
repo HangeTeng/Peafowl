@@ -33,8 +33,8 @@ class Node():
         self.client_comm = client_comm
         self.totalDataSent = 0
         self.totalDataRecv = 0
-        self.STSender = Sender(4)
-        self.STRecver = Receiver(4)
+        self.STSender = Sender(16)
+        self.STRecver = Receiver(16)
     
 
 
@@ -92,7 +92,9 @@ class Node():
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if recver is None else str(
             comm.Get_rank()) + "_" + str(recver) + "_" + str(tag)
-        result = self.STSender.run(size=size,
+        # result = self.STSender.run(size=size,
+        STSender = Sender(16)
+        result = STSender.run(size=size,
                         sessionHint=sessionHint,
                         permute=permute,
                         p=p,
@@ -114,7 +116,9 @@ class Node():
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if sender is None else str(sender) + "_" + str(
             comm.Get_rank()) + "_" + str(tag)
-        result = self.STRecver.run(size=size,
+        # result = self.STRecver.run(size=size,
+        STRecver = Receiver(16)
+        result = STRecver.run(size=size,
                             sessionHint=sessionHint,
                             p=p,
                             Sip=Sip,

@@ -69,7 +69,7 @@ def main():
     secret_key = "secret_key"
 
     # shprg
-    n = 8
+    n = 2
     m = sub_features + target_length
     EQ = 128
     EP = 64
@@ -163,6 +163,8 @@ def main():
     else:
         pass
 
+
+    n = 2
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
@@ -177,7 +179,7 @@ def main():
                 permute=permutes[dset_rank],
                 recver=rank,
                 tag=dset_rank + input_dim * 100,
-                Sip="127.0.0.1:"+str(12233+rank),
+                Sip="127.0.0.1:"+str(21233 + rank + dset_rank*10 + input_dim *100),
                 # Sip="127.0.0.1:12233",
                 num_threads = num_threads)
 
@@ -190,6 +192,7 @@ def main():
             # executor.map(STsend_thread, task_args)
             for args in task_args:
                 executor.submit(STsend_thread, args)
+                # STsend_thread(args)
         # print(all_deltas[0][1][0][0])
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
@@ -204,7 +207,7 @@ def main():
                     size=sub_examples,
                     sender=server_rank,
                     tag=dset_rank + input_dim * 100,
-                    Sip="127.0.0.1:"+str(12233+client_rank),
+                    Sip="127.0.0.1:"+str(21233+client_rank+dset_rank*10 + input_dim * 100),
                     # Sip="127.0.0.1:12233",
                 num_threads = num_threads)
 
@@ -212,6 +215,7 @@ def main():
             task_args = [(dset_rank, input_dim)
                          for dset_rank in range(client_size)
                          for input_dim in range(n)]
+            # print(task_args)
             # executor.map(STrecv_thread, task_args)
             for args in task_args:
                 executor.submit(STrecv_thread, args)

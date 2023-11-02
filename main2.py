@@ -108,7 +108,7 @@ def main():
 
     #* initial node
     if is_server:
-        node = Node(None, None, global_comm, client_comm)
+        node = Node(None, None, global_comm, client_comm, is_server)
         temp_dataset = []
         temp_prg_dataset = []
         temp_folder_path = folder_path + "/temp"
@@ -144,7 +144,7 @@ def main():
             data_shape=(features, ),
             target_shape=() if target_length == 1 else (target_length),
             dtype=np.int64)
-        node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
+        node = Node(src_dataset, tgt_dataset, global_comm, client_comm, is_server)
         executor = ThreadPoolExecutor(max_workers=max_worker)
 
     # print("start test...")
@@ -161,12 +161,17 @@ def main():
             all_indices = list(range(sub_examples))
             random.shuffle(all_indices)
             permutes.append(all_indices)
+        node.STinit(size=sub_examples,permutes=permutes,p=q)
+        # print(node.STSenders)
         # print(permutes)
     else:
+        node.STinit()
         pass
 
+    # return
 
     n = 8
+    port = 37130
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
@@ -176,13 +181,13 @@ def main():
             rank, dset_rank, input_dim = args
             if rank == dset_rank:
                 return
-            # all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
-            node.STsend(
+            all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
+            # node.STsend(
                 size=sub_examples,
-                permute=permutes[dset_rank],
+                dset_rank=dset_rank,
                 recver=rank,
                 tag= rank * 31 + dset_rank * 73 + input_dim * 109,
-                port = 31280,
+                port = port,
                 port_mode=False,
                 num_threads = num_threads)
 
@@ -197,6 +202,7 @@ def main():
             # STsend_thread_future.append(executor.submit(STsend_thread, args))
             executor.submit(STsend_thread, args)
             # STsend_thread(args)
+        # print(all_deltas[0][1][0])
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
         b_s = np.empty((client_size, sub_examples, n), dtype=object)
@@ -205,13 +211,14 @@ def main():
             dset_rank, input_dim = args
             if client_rank == dset_rank:
                 return
-            # a_s[dset_rank, :,
-            #     input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
-            node.STrecv(
+            a_s[dset_rank, :,
+                input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
+            # node.STrecv(
                     size=sub_examples,
+                    dset_rank=dset_rank,
                     sender=server_rank,
                     tag= client_rank * 31 + dset_rank * 73 + input_dim * 109,
-                    port = 31280,
+                    port = port,
                     port_mode=False,
                     num_threads = num_threads)
 
@@ -229,6 +236,9 @@ def main():
 
         # if client_rank == 0:
         #     permute = [2, 3, 4, 0, 1]
+        #     print(a_s[1][2])
+        #     print(b_s[1][0])
+            
         #     print((a_s[1][2][0]-b_s[1][0][0])%q)
 
     timer.set_time_point("share_tras")
@@ -323,10 +333,11 @@ def main():
                         permutes[send_rank]] +
                     all_deltas[recv_rank][send_rank]) % q
         seed1s_s = seeds_share_gather
-        # print(seed1s_s[0][1][0][0])
+        print(seed1s_s[0][1][0][0])
     else:
         seed2s = b_s
-        # print(b_s[1][0][0])
+        if client_rank == 0 :
+            print(b_s[1][0][0])
 
     timer.set_time_point("perm_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(

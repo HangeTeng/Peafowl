@@ -26,15 +26,16 @@ def timer(func):
 
 class Node():
     def __init__(self, src_dataset: HDF5Dataset, tgt_dataset: HDF5Dataset,
-                 global_comm: MPI.Comm, client_comm: MPI.Comm):
+                 global_comm: MPI.Comm, client_comm: MPI.Comm, is_server):
         self.src_dataset = src_dataset
         self.tgt_dataset = tgt_dataset
         self.global_comm = global_comm
         self.client_comm = client_comm
         self.totalDataSent = 0
         self.totalDataRecv = 0
-        self.STSender = Sender(16)
-        self.STRecver = Receiver(16)
+        self.is_server = is_server
+        self.STSenders = [None] * (global_comm.Get_size() - 1)
+        self.STRecver = None
     
 
 
@@ -78,10 +79,20 @@ class Node():
         self.totalDataRecv += self.get_size_recursive(recv_data) / 1024 / 1024
         return recv_data
     
+    def STinit(self,size=None, permutes=None, p=1<<128, ios_threads = 4):
+        if self.is_server:
+            if size is None or permutes is None:
+                raise ValueError("Invalid: missing size or permute")
+            for i in range(len(permutes)):
+                self.STSenders[i] = Sender(size=size, permute=permutes[i], p=p, ios_threads = ios_threads)
+        else:
+            self.STRecver = Receiver(ios_threads = ios_threads)
+
+
     # @timer
     def STsend(self,
                size,
-               permute,
+               dset_rank,
                recver=None,
                in_clients=False,
                tag=0,
@@ -92,19 +103,17 @@ class Node():
                num_threads=2,
                port_mode = True,):
         comm = self.client_comm if in_clients else self.global_comm
-        sessionHint = str(tag) if recver is None else str(
-            comm.Get_rank()) + "_" + str(recver) + "_" + str(tag)
+        sessionHint = str(tag) if recver is None else (str(
+            comm.Get_rank()) + "_" + str(recver) + "_" + str(tag))
         # result = self.STSender.run(size=size,
         if port_mode:
             all_ip = Sip +":"+str(port + tag)
-            STSender = Sender(1)
+            STSender = self.STSenders[dset_rank]
         else:
-            all_ip = Sip +":"+str(port)
-            STSender = self.STSender
-
+            all_ip = Sip +":"+str(port+ dset_rank )
+            STSender = self.STSenders[dset_rank]
         result = STSender.run(size=size,
                         sessionHint=sessionHint,
-                        permute=permute,
                         p=p,
                         Sip=all_ip,
                         ot_type=ot_type,
@@ -114,6 +123,7 @@ class Node():
     # @timer
     def STrecv(self,
                size,
+               dset_rank,
                sender=None,
                in_clients=False,
                tag=0,
@@ -124,14 +134,14 @@ class Node():
                num_threads=2,
                port_mode = True,):
         comm = self.client_comm if in_clients else self.global_comm
-        sessionHint = str(tag) if sender is None else str(sender) + "_" + str(
-            comm.Get_rank()) + "_" + str(tag)
+        sessionHint = str(tag) if sender is None else (str(sender) + "_" + str(
+            comm.Get_rank()) + "_" + str(tag))
         
         if port_mode:
             all_ip = Sip +":"+str(port + tag)
-            STRecver = Receiver(1)
+            STRecver = self.STRecver
         else:
-            all_ip = Sip +":"+str(port)
+            all_ip = Sip +":"+str(port + dset_rank)
             STRecver = self.STRecver
         result = STRecver.run(size=size,
                             sessionHint=sessionHint,
@@ -157,10 +167,18 @@ class Node():
         return size
 
     def getTotalDataSent(self):
-        return self.totalDataSent + self.STSender.getTotalDataSent() / 1024 / 1024 + self.STRecver.getTotalDataSent() / 1024 / 1024
+        totalDataSent = self.totalDataSent
+        for STSender in self.STSenders:
+            totalDataSent += STSender.getTotalDataSent() / 1024 / 1024 if STSender is not None else 0
+        totalDataSent += self.STRecver.getTotalDataSent() / 1024 / 1024 if self.STRecver is not None else 0
+        return totalDataSent
     
     def getTotalDataRecv(self):
-        return self.totalDataSent + self.STSender.getTotalDataRecv() / 1024 / 1024 + self.STRecver.getTotalDataRecv() / 1024 / 1024
+        totalDataRecv = self.totalDataRecv
+        for STSender in self.STSenders:
+            totalDataRecv += STSender.getTotalDataRecv() / 1024 / 1024 if STSender is not None else 0
+        totalDataRecv += self.STRecver.getTotalDataRecv() / 1024 / 1024 if self.STRecver is not None else 0
+        return totalDataRecv
 
     def __split_array(self, arr, split_num=2):
         shape = arr.shape
@@ -220,96 +238,3 @@ class Node():
             intersection_indices.append(indices)
 
         return intersection_indices, length_intersection
-
-
-if __name__ == "__main__":
-    # dataset
-    examples = 6
-    features = 60
-    chunk = 100
-
-    # sub_dataset
-    nodes = 3
-    sub_examples = 5
-
-    global_comm = MPI.COMM_WORLD
-    global_rank = global_comm.Get_rank()
-    comm_size = global_comm.Get_size()
-
-    global_grp = global_comm.Get_group()
-    client_grp = global_grp.Excl([comm_size - 1])
-    client_comm = global_comm.Create(global_grp)
-    client_rank = client_comm.Get_rank()
-
-    is_server = False
-    if global_rank == comm_size - 1:
-        is_server = True
-    server_rank = comm_size - 1
-
-    if is_server:
-        node = Node(None, None, global_comm, client_comm)
-    else:
-        src_path = "../../data/SVM_{}_{}_{}-{}.hdf5".format(
-            examples, features, global_rank, nodes)
-        src_dataset = HDF5Dataset(file_path=src_path)
-        tgt_path = "../../data/SVM_{}_{}_{}-{}_share.hdf5".format(
-            examples, features, global_rank, nodes)
-        tgt_dataset = HDF5Dataset.new(file_path=tgt_path,
-                                        data_shape=(features, ),
-                                        target_shape=(),
-                                        dtype=np.int64)
-
-
-
-        node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
-
-    print("start testing...")
-
-    size = 4
-    # gather
-    data_to_gather = np.array([10]*size) + global_rank
-    gathered_data = node.gather(data_to_gather, server_rank)
-    if is_server:
-        print(f"Gathered data: {gathered_data}")
-
-    # scatter
-    data_to_scatter = None
-    if is_server:
-        data_to_scatter = np.array([100]*size) + global_rank
-    received_data = node.scatter(data_to_scatter, server_rank)
-    print(f"Scattered data: {received_data}")
-
-    # alltoall
-    data_to_exchange = np.array([1000]*size) + global_rank
-    exchanged_data = node.alltoall(data_to_exchange, in_clients=True)
-    print(f"Exchanged data: {exchanged_data}")
-
-    data_size = 6
-    permute = range(data_size - 1, -1, -1)
-
-    Sip = "127.0.0.1:12222"
-    STData = None
-    # for j in range(comm_size - 1):
-    for j in range(1):
-        for i in range(comm_size - 1):
-            if is_server:
-                STData = node.STsend(size=data_size,
-                                    permute=permute,
-                                    recver=i,
-                                    tag=j,
-                                    Sip=Sip)
-            elif global_rank == i:
-                STData,STData2 = node.STrecv(size=data_size,
-                                    sender=server_rank,
-                                    tag=j,
-                                    Sip=Sip)
-            # print(str(i)+"_"+str(j)+" complete!")
-    if is_server:
-        print("rank " +str(global_rank) +" sent: "+ str(node.STSender.getTotalDataSent()))
-        print("rank " +str(global_rank) +" recv: "+ str(node.STSender.getTotalDataRecv()))
-    else:
-        print("rank " +str(global_rank) +" sent: "+ str(node.STRecver.getTotalDataSent()))
-        print("rank " +str(global_rank) +" recv: "+ str(node.STRecver.getTotalDataRecv()))
-    
-
-

@@ -3,9 +3,12 @@ import numpy as np
 
 
 class Sender(SSS.OSNSender):
-    def run(self, size, permute, p=1<<128, Sip="127.0.0.1:12222", ot_type=1, sessionHint="",num_threads=1):
+    def __init__(self, size, permute, p=1<<128, ios_threads = 4 ):
+        super().__init__(size=size, dest=permute,  p=self.__split_largeint(p), ios_threads = ios_threads) 
+
+    def run(self, size,  p=1<<128, Sip="127.0.0.1:12222", ot_type=1, sessionHint="",num_threads=1):
         result = []
-        a_list = super().run(size=size, dest=permute,  p=self.__split_largeint(p), Sip=Sip, ot_type=ot_type,sessionHint=sessionHint, num_threads=num_threads)
+        a_list = super().run(size=size,   p=self.__split_largeint(p), Sip=Sip, ot_type=ot_type,sessionHint=sessionHint, num_threads=num_threads)
         for a in a_list:
             result.append(a[0] + (a[1]<<64))
         return np.array(result, dtype=object)
@@ -52,6 +55,7 @@ if __name__ == "__main__":
     # sender = Sender(4)
     # print("Sender!")
 
+    
     def receiver_process(result_queue, sessionHint, Sip):
         receiver = Receiver(4)
         print("receiver_process!")
@@ -61,20 +65,24 @@ if __name__ == "__main__":
         print("receiver run!")
         result_queue.put(a)
 
+    
+
     def sender_process(result_queue, sessionHint, Sip):
-        sender = Sender(4)
-        a = sender.run(size=size, permute=permute,sessionHint=sessionHint, p=p, Sip=Sip, num_threads=num_threads)
+        sender = Sender(size=size, permute=permute,p=p,)
+        a = sender.run(size=size, sessionHint=sessionHint, p=p, Sip=Sip, num_threads=num_threads)
         print("sender run!")
         result_queue.put(a)
 
     result_queue_recv = multiprocessing.Queue()
     result_queue_send = multiprocessing.Queue()
+    result_queue_recv2 = multiprocessing.Queue()
+    result_queue_send2 = multiprocessing.Queue()
     
     
-    receiver_proc = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,"1","127.0.0.1:12222"))
-    sender_proc = multiprocessing.Process(target=sender_process, args=(result_queue_send,"1","127.0.0.1:12222"))
-    receiver_proc2 = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,"2","127.0.0.1:12232"))
-    sender_proc2 = multiprocessing.Process(target=sender_process, args=(result_queue_send,"2","127.0.0.1:12232"))
+    receiver_proc = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,"1","127.0.0.1:12246"))
+    sender_proc = multiprocessing.Process(target=sender_process, args=(result_queue_send,"1","127.0.0.1:12246"))
+    receiver_proc2 = multiprocessing.Process(target=receiver_process, args=(result_queue_recv2,"2","127.0.0.1:12296"))
+    sender_proc2 = multiprocessing.Process(target=sender_process, args=(result_queue_send2,"2","127.0.0.1:12296"))
     
 
     

@@ -97,7 +97,7 @@ class Node():
         # result = self.STSender.run(size=size,
         if port_mode:
             all_ip = Sip +":"+str(port + tag)
-            STSender = Sender(16)
+            STSender = Sender(1)
         else:
             all_ip = Sip +":"+str(port)
             STSender = self.STSender
@@ -129,7 +129,7 @@ class Node():
         
         if port_mode:
             all_ip = Sip +":"+str(port + tag)
-            STRecver = Receiver(16)
+            STRecver = Receiver(1)
         else:
             all_ip = Sip +":"+str(port)
             STRecver = self.STRecver

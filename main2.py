@@ -130,6 +130,7 @@ def main():
                                 target_shape=() if target_length == 1 else
                                 (target_length),
                                 dtype=np.int64))
+        executor = ThreadPoolExecutor(max_workers=server_max_worker)
     else:
         src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path, examples,
                                                     features, global_rank,
@@ -144,6 +145,7 @@ def main():
             target_shape=() if target_length == 1 else (target_length),
             dtype=np.int64)
         node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
+        executor = ThreadPoolExecutor(max_workers=max_worker)
 
     # print("start test...")
     timer.set_time_point("start_test")
@@ -184,19 +186,17 @@ def main():
                 port_mode=False,
                 num_threads = num_threads)
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            task_args = [(rank, dset_rank, input_dim)
-                         for input_dim in range(n)
-                         for dset_rank in range(client_size)
-                         for rank in range(client_size)]
-            # print(task_args)
-            STsend_thread_future = []
-            # executor.map(STsend_thread, task_args)
-            for args in task_args:
-                # STsend_thread_future.append(executor.submit(STsend_thread, args))
-                executor.submit(STsend_thread, args)
-                # STsend_thread(args)
-        # print(all_deltas[0][1][0][0])
+            
+        task_args = [(rank, dset_rank, input_dim)
+                        for input_dim in range(n)
+                        for dset_rank in range(client_size)
+                        for rank in range(client_size)]
+        # print(task_args)
+        # executor.map(STsend_thread, task_args)
+        for args in task_args:
+            # STsend_thread_future.append(executor.submit(STsend_thread, args))
+            executor.submit(STsend_thread, args)
+            # STsend_thread(args)
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
         b_s = np.empty((client_size, sub_examples, n), dtype=object)
@@ -215,17 +215,18 @@ def main():
                     port_mode=False,
                     num_threads = num_threads)
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            task_args = [(dset_rank, input_dim)
-                         for input_dim in range(n)
-                         for dset_rank in range(client_size)
-                         ]
-            # print(task_args)
-            # executor.map(STrecv_thread, task_args)
-            STrecv_thread_future = []
-            for args in task_args:
-                executor.submit(STrecv_thread, args)
-                # STrecv_thread(args)
+        # with ThreadPoolExecutor(max_workers=max_worker) as executor:
+        task_args = [(dset_rank, input_dim)
+                        for input_dim in range(n)
+                        for dset_rank in range(client_size)
+                        ]
+        # print(task_args)
+        # results = executor.map(STrecv_thread, task_args)
+        # STrecv_thread_future = []
+        for args in task_args:
+            executor.submit(STrecv_thread, args)
+            # STrecv_thread(args)
+
         # if client_rank == 0:
         #     permute = [2, 3, 4, 0, 1]
         #     print((a_s[1][2][0]-b_s[1][0][0])%q)

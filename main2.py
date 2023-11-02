@@ -64,7 +64,7 @@ def main():
         "./data/log/poc2_SVM_{}_{}_log_{}.txt".format(examples, features,
                                                       nodes), 'a')
     sys.stdout = file
-    # sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
@@ -99,7 +99,7 @@ def main():
     server_rank = global_size - 1
 
     # thread
-    max_worker = 10 * client_size
+    max_worker = 5 * client_size
     server_max_worker = max_worker * client_size
     num_threads = 1
 
@@ -164,7 +164,7 @@ def main():
         pass
 
 
-    n = 2
+    n = 8
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
@@ -174,23 +174,26 @@ def main():
             rank, dset_rank, input_dim = args
             if rank == dset_rank:
                 return
-            all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
+            # all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
+            node.STsend(
                 size=sub_examples,
                 permute=permutes[dset_rank],
                 recver=rank,
-                tag=dset_rank + input_dim * 100,
-                Sip="127.0.0.1:"+str(21233 + rank + dset_rank*10 + input_dim *100),
-                # Sip="127.0.0.1:12233",
+                tag= rank * 31 + dset_rank * 73 + input_dim * 109,
+                port = 31280,
+                port_mode=False,
                 num_threads = num_threads)
 
-        with ThreadPoolExecutor(max_workers=server_max_worker) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             task_args = [(rank, dset_rank, input_dim)
-                         for dset_rank in range(client_size)
                          for input_dim in range(n)
+                         for dset_rank in range(client_size)
                          for rank in range(client_size)]
             # print(task_args)
+            STsend_thread_future = []
             # executor.map(STsend_thread, task_args)
             for args in task_args:
+                # STsend_thread_future.append(executor.submit(STsend_thread, args))
                 executor.submit(STsend_thread, args)
                 # STsend_thread(args)
         # print(all_deltas[0][1][0][0])
@@ -202,21 +205,24 @@ def main():
             dset_rank, input_dim = args
             if client_rank == dset_rank:
                 return
-            a_s[dset_rank, :,
-                input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
+            # a_s[dset_rank, :,
+            #     input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
+            node.STrecv(
                     size=sub_examples,
                     sender=server_rank,
-                    tag=dset_rank + input_dim * 100,
-                    Sip="127.0.0.1:"+str(21233+client_rank+dset_rank*10 + input_dim * 100),
-                    # Sip="127.0.0.1:12233",
-                num_threads = num_threads)
+                    tag= client_rank * 31 + dset_rank * 73 + input_dim * 109,
+                    port = 31280,
+                    port_mode=False,
+                    num_threads = num_threads)
 
-        with ThreadPoolExecutor(max_workers=max_worker) as executor:
+        with ThreadPoolExecutor(max_workers=1) as executor:
             task_args = [(dset_rank, input_dim)
+                         for input_dim in range(n)
                          for dset_rank in range(client_size)
-                         for input_dim in range(n)]
+                         ]
             # print(task_args)
             # executor.map(STrecv_thread, task_args)
+            STrecv_thread_future = []
             for args in task_args:
                 executor.submit(STrecv_thread, args)
                 # STrecv_thread(args)

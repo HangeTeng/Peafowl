@@ -86,19 +86,27 @@ class Node():
                in_clients=False,
                tag=0,
                p=1 << 128,
-               Sip="127.0.0.1:12222",
+               Sip="127.0.0.1",
+               port = 40280,
                ot_type=1,
-               num_threads=2):
+               num_threads=2,
+               port_mode = True,):
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if recver is None else str(
             comm.Get_rank()) + "_" + str(recver) + "_" + str(tag)
         # result = self.STSender.run(size=size,
-        STSender = Sender(16)
+        if port_mode:
+            all_ip = Sip +":"+str(port + tag)
+            STSender = Sender(16)
+        else:
+            all_ip = Sip +":"+str(port)
+            STSender = self.STSender
+
         result = STSender.run(size=size,
                         sessionHint=sessionHint,
                         permute=permute,
                         p=p,
-                        Sip=Sip,
+                        Sip=all_ip,
                         ot_type=ot_type,
                         num_threads=num_threads)
         return result
@@ -110,18 +118,25 @@ class Node():
                in_clients=False,
                tag=0,
                p=1 << 128,
-               Sip="127.0.0.1:12222",
+               Sip="127.0.0.1",
+               port = 40280,
                ot_type=1,
-               num_threads=2):
+               num_threads=2,
+               port_mode = True,):
         comm = self.client_comm if in_clients else self.global_comm
         sessionHint = str(tag) if sender is None else str(sender) + "_" + str(
             comm.Get_rank()) + "_" + str(tag)
-        # result = self.STRecver.run(size=size,
-        STRecver = Receiver(16)
+        
+        if port_mode:
+            all_ip = Sip +":"+str(port + tag)
+            STRecver = Receiver(16)
+        else:
+            all_ip = Sip +":"+str(port)
+            STRecver = self.STRecver
         result = STRecver.run(size=size,
                             sessionHint=sessionHint,
                             p=p,
-                            Sip=Sip,
+                            Sip=all_ip,
                             ot_type=ot_type,
                             num_threads=num_threads)
         return result[0],result[1]

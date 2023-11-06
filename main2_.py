@@ -18,6 +18,8 @@ from src.utils.encoder import FixedPointEncoder, mod_range
 import time
 
 
+
+
 class Timer:
     def __init__(self):
         self.time_points = {}
@@ -42,8 +44,34 @@ class Timer:
         return output
 
 
-# from numba import jit
-# @jit
+def atimer(func):
+    def func_wrapper(*args, **kwargs):
+        from time import time
+        time_start = time()
+        result = func(*args, **kwargs)
+        time_end = time()
+        time_spend = time_end - time_start
+        print('\n{0} cost time {1} s\n'.format(func.__name__, time_spend))
+        return result
+
+    return func_wrapper
+
+def STsend_thread(args):
+    rank, dset_rank, input_dim, all_deltas, node, sub_examples, port, num_threads= args
+    if rank == dset_rank:
+        return
+    all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
+    # node.STsend(
+        size=sub_examples,
+        dset_rank=dset_rank,
+        recver=rank,
+        tag= rank * 31 + dset_rank * 73 + input_dim * 109,
+        port = port,
+        port_mode=False,
+        num_threads = num_threads)
+
+
+
 def main():
     # dataset
     arguments = sys.argv[1:]
@@ -64,7 +92,7 @@ def main():
         "./data/log/poc2_SVM_{}_{}_log_{}.txt".format(examples, features,
                                                       nodes), 'a')
     sys.stdout = file
-    # sys.stdout = sys.__stdout__
+    sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
@@ -99,7 +127,7 @@ def main():
     server_rank = global_size - 1
 
     # thread
-    max_worker = 5 * client_size
+    max_worker = 10 * client_size
     server_max_worker = max_worker * client_size
     num_threads = 1
 
@@ -108,7 +136,7 @@ def main():
 
     #* initial node
     if is_server:
-        node = Node(None, None, global_comm, client_comm)
+        node = Node(None, None, global_comm, client_comm, is_server)
         temp_dataset = []
         temp_prg_dataset = []
         temp_folder_path = folder_path + "/temp"
@@ -130,6 +158,7 @@ def main():
                                 target_shape=() if target_length == 1 else
                                 (target_length),
                                 dtype=np.int64))
+        executor = ThreadPoolExecutor(max_workers=server_max_worker)
     else:
         src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path, examples,
                                                     features, global_rank,
@@ -143,7 +172,8 @@ def main():
             data_shape=(features, ),
             target_shape=() if target_length == 1 else (target_length),
             dtype=np.int64)
-        node = Node(src_dataset, tgt_dataset, global_comm, client_comm)
+        node = Node(src_dataset, tgt_dataset, global_comm, client_comm, is_server)
+        executor = ThreadPoolExecutor(max_workers=max_worker)
 
     # print("start test...")
     timer.set_time_point("start_test")
@@ -159,12 +189,18 @@ def main():
             all_indices = list(range(sub_examples))
             random.shuffle(all_indices)
             permutes.append(all_indices)
+        node.STinit(size=sub_examples,permutes=permutes,p=q)
+        # print(node.STSenders)
         # print(permutes)
     else:
+        node.STinit()
         pass
 
+    # return
 
-    n = 2
+    n = 3
+    random.seed(1)
+    port = 30000 + random.randint(1, 10000)
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
@@ -174,50 +210,52 @@ def main():
             rank, dset_rank, input_dim = args
             if rank == dset_rank:
                 return
-            all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
+            # all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
+            node.STsend(
                 size=sub_examples,
-                permute=permutes[dset_rank],
+                dset_rank=dset_rank,
                 recver=rank,
-                tag= rank * 31 + dset_rank * 73 + input_dim * 19,
-                port = 40280,
+                tag= rank * 31 + dset_rank * 73 + input_dim * 109,
+                port = port,
+                port_mode=False,
                 num_threads = num_threads)
 
-        with ThreadPoolExecutor(max_workers=server_max_worker) as executor:
-            task_args = [(rank, dset_rank, input_dim)
-                         for dset_rank in range(client_size)
-                         for input_dim in range(n)
-                         for rank in range(client_size)]
-            STsend_thread_future = []
-            for args in task_args:
-                STsend_thread_future.append(executor.submit(STsend_thread, args))
-            for future in STsend_thread_future:
-                result = future.result(timeout=5)
+            
+        task_args = [(rank, dset_rank, input_dim)
+                        for input_dim in range(n)
+                        for dset_rank in range(client_size)
+                        for rank in range(client_size)]
+        results = list(executor.map(STsend_thread, task_args))
+        # for result in results:
+        #     print(result.result())
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
         b_s = np.empty((client_size, sub_examples, n), dtype=object)
 
+        # @atimer
         def STrecv_thread(args):
             dset_rank, input_dim = args
             if client_rank == dset_rank:
                 return
-            a_s[dset_rank, :,
-                input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
+            # a_s[dset_rank, :,
+                # input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
+            node.STrecv(
                     size=sub_examples,
+                    dset_rank=dset_rank,
                     sender=server_rank,
-                    tag= client_rank * 31 + dset_rank * 73 + input_dim * 19,
-                    port = 40280,
-                    # port_mode=False,
+                    tag= client_rank * 31 + dset_rank * 73 + input_dim * 109,
+                    port = port,
+                    port_mode=False,
                     num_threads = num_threads)
 
-        with ThreadPoolExecutor(max_workers=max_worker) as executor:
-            task_args = [(dset_rank, input_dim)
-                         for dset_rank in range(client_size)
-                         for input_dim in range(n)]
-            STrecv_thread_future = []
-            for args in task_args:
-                # executor.submit(STrecv_thread, args)
-                STrecv_thread(args)
-
+        task_args = [(dset_rank, input_dim)
+                        for input_dim in range(n)
+                        for dset_rank in range(client_size)
+                        ]
+        
+        results = list(executor.map(STrecv_thread, task_args))
+        # for result in results:
+        #     print(result.result())
 
     timer.set_time_point("share_tras")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
@@ -311,10 +349,11 @@ def main():
                         permutes[send_rank]] +
                     all_deltas[recv_rank][send_rank]) % q
         seed1s_s = seeds_share_gather
-        # print(seed1s_s[0][1][0][0])
+        print(seed1s_s[0][1][0][0])
     else:
         seed2s = b_s
-        # print(b_s[1][0][0])
+        if client_rank == 0 :
+            print(b_s[1][0][0])
 
     timer.set_time_point("perm_share")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(

@@ -42,6 +42,18 @@ class Timer:
         return output
 
 
+def atimer(func):
+    def func_wrapper(*args, **kwargs):
+        from time import time
+        time_start = time()
+        result = func(*args, **kwargs)
+        time_end = time()
+        time_spend = time_end - time_start
+        print('\n{0} cost time {1} s\n'.format(func.__name__, time_spend))
+        return result
+
+    return func_wrapper
+
 # from numba import jit
 # @jit
 def main():
@@ -99,7 +111,7 @@ def main():
     server_rank = global_size - 1
 
     # thread
-    max_worker = 5 * client_size
+    max_worker = 10 * client_size
     server_max_worker = max_worker * client_size
     num_threads = 1
 
@@ -170,13 +182,15 @@ def main():
 
     # return
 
-    n = 8
-    port = 37130
+    n = 1
+    random.seed(2)
+    port = 30000 + random.randint(1, 10000)
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
                               dtype=object)
 
+        # @atimer
         def STsend_thread(args):
             rank, dset_rank, input_dim = args
             if rank == dset_rank:
@@ -198,15 +212,20 @@ def main():
                         for rank in range(client_size)]
         # print(task_args)
         # executor.map(STsend_thread, task_args)
-        for args in task_args:
-            # STsend_thread_future.append(executor.submit(STsend_thread, args))
-            executor.submit(STsend_thread, args)
+        # for args in task_args:
+        #     # STsend_thread_future.append(executor.submit(STsend_thread, args))
+        #     executor.submit(STsend_thread, args)
+        os.environ['RDMAV_FORK_SAFE'] = '1'
+        import multiprocessing
+        with multiprocessing.Pool(processes=25) as pool:
+            pool.map(STsend_thread, task_args)
             # STsend_thread(args)
         # print(all_deltas[0][1][0])
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
         b_s = np.empty((client_size, sub_examples, n), dtype=object)
 
+        @atimer
         def STrecv_thread(args):
             dset_rank, input_dim = args
             if client_rank == dset_rank:
@@ -230,8 +249,10 @@ def main():
         # print(task_args)
         # results = executor.map(STrecv_thread, task_args)
         # STrecv_thread_future = []
-        for args in task_args:
-            executor.submit(STrecv_thread, args)
+        os.environ['RDMAV_FORK_SAFE'] = '1'
+        import multiprocessing
+        with multiprocessing.Pool(processes=25) as pool:
+            pool.map(STrecv_thread, task_args)
             # STrecv_thread(args)
 
         # if client_rank == 0:

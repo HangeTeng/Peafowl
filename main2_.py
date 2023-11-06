@@ -1,21 +1,24 @@
 import os, sys
+os.environ['RDMAV_FORK_SAFE'] = '1'
 from mpi4py import MPI
 import numpy as np
 import math
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
 import random
 
 from line_profiler import LineProfiler
 import cProfile
 
-from src.communicator.node import Node
+from src.communicator.node import Node,STNode
 from src.utils.h5dataset import HDF5Dataset
 from src.utils.crypto.prf import PRF
 from src.utils.crypto.shprg import SHPRG
 from src.utils.encoder import FixedPointEncoder, mod_range
 
 import time
+
+
 
 
 
@@ -57,18 +60,34 @@ def atimer(func):
     return func_wrapper
 
 def STsend_thread(args):
-    rank, dset_rank, input_dim, all_deltas, node, sub_examples, port, num_threads= args
+    is_server, sub_examples, permute, p, port, num_threads, rank, dset_rank, input_dim = args
     if rank == dset_rank:
         return
-    all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
-    # node.STsend(
+    stnode = STNode(is_server)
+    stnode.STinit(size=sub_examples, permute=permute, p=p)
+    delta = stnode.STsend(
         size=sub_examples,
         dset_rank=dset_rank,
-        recver=rank,
         tag= rank * 31 + dset_rank * 73 + input_dim * 109,
         port = port,
-        port_mode=False,
+        # port_mode=False,
         num_threads = num_threads)
+    return delta
+    
+def STrecv_thread(args):
+    is_server, sub_examples, p, port, num_threads, client_rank, dset_rank, input_dim = args
+    if client_rank == dset_rank:
+        return
+    stnode = STNode(is_server)
+    stnode.STinit(p=p)
+    a,b = stnode.STrecv(
+            size=sub_examples,
+            dset_rank=dset_rank,
+            tag= client_rank * 31 + dset_rank * 73 + input_dim * 109,
+            port = port,
+            # port_mode=False,
+            num_threads = num_threads)
+    return a,b
 
 
 
@@ -158,7 +177,6 @@ def main():
                                 target_shape=() if target_length == 1 else
                                 (target_length),
                                 dtype=np.int64))
-        executor = ThreadPoolExecutor(max_workers=server_max_worker)
     else:
         src_path = "{}/SVM_{}_{}_{}-{}.hdf5".format(folder_path, examples,
                                                     features, global_rank,
@@ -173,7 +191,6 @@ def main():
             target_shape=() if target_length == 1 else (target_length),
             dtype=np.int64)
         node = Node(src_dataset, tgt_dataset, global_comm, client_comm, is_server)
-        executor = ThreadPoolExecutor(max_workers=max_worker)
 
     # print("start test...")
     timer.set_time_point("start_test")
@@ -189,79 +206,69 @@ def main():
             all_indices = list(range(sub_examples))
             random.shuffle(all_indices)
             permutes.append(all_indices)
-        node.STinit(size=sub_examples,permutes=permutes,p=q)
+        # node.STinit(size=sub_examples,permutes=permutes,p=q)
         # print(node.STSenders)
         # print(permutes)
     else:
-        node.STinit()
         pass
 
     # return
 
-    n = 3
+    n = 4
     random.seed(1)
-    port = 30000 + random.randint(1, 10000)
+    port = 20000 + random.randint(1, 10000)
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
                               dtype=object)
-
-        def STsend_thread(args):
-            rank, dset_rank, input_dim = args
-            if rank == dset_rank:
-                return
-            # all_deltas[rank, dset_rank, :, input_dim] = node.STsend(
-            node.STsend(
-                size=sub_examples,
-                dset_rank=dset_rank,
-                recver=rank,
-                tag= rank * 31 + dset_rank * 73 + input_dim * 109,
-                port = port,
-                port_mode=False,
-                num_threads = num_threads)
-
             
-        task_args = [(rank, dset_rank, input_dim)
+        task_args = [(is_server,  sub_examples, permutes[dset_rank], q, port, num_threads, rank, dset_rank, input_dim)
                         for input_dim in range(n)
                         for dset_rank in range(client_size)
                         for rank in range(client_size)]
-        results = list(executor.map(STsend_thread, task_args))
+        with ProcessPoolExecutor(max_workers=server_max_worker) as executor:
+            results = list(executor.map(STsend_thread, task_args))
+            for i in range(len(task_args)):
+                # print(task_args[i][-3:])
+                rank, dset_rank, input_dim = task_args[i][-3:]
+                all_deltas[rank, dset_rank, :, input_dim] = results[i]
+        # print(results)
+        # for args in task_args:
+        #     STsend_thread(args)
         # for result in results:
         #     print(result.result())
+        print(all_deltas[0,1,0])
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
         b_s = np.empty((client_size, sub_examples, n), dtype=object)
 
-        # @atimer
-        def STrecv_thread(args):
-            dset_rank, input_dim = args
-            if client_rank == dset_rank:
-                return
-            # a_s[dset_rank, :,
-                # input_dim], b_s[dset_rank, :, input_dim] = node.STrecv(
-            node.STrecv(
-                    size=sub_examples,
-                    dset_rank=dset_rank,
-                    sender=server_rank,
-                    tag= client_rank * 31 + dset_rank * 73 + input_dim * 109,
-                    port = port,
-                    port_mode=False,
-                    num_threads = num_threads)
-
-        task_args = [(dset_rank, input_dim)
+        task_args = [(is_server, sub_examples, q, port, num_threads, client_rank, dset_rank, input_dim)
                         for input_dim in range(n)
                         for dset_rank in range(client_size)
                         ]
-        
-        results = list(executor.map(STrecv_thread, task_args))
-        # for result in results:
-        #     print(result.result())
+        with ProcessPoolExecutor(max_workers=max_worker) as executor:
+            results = list(executor.map(STrecv_thread, task_args))
+            for i in range(len(task_args)):
+                dset_rank, input_dim = task_args[i][-2:]
+                if results[i] is not None:
+                    a_s[dset_rank, :,input_dim],b_s[dset_rank, :, input_dim] = results[i]
+            # for args in task_args:
+            #     STrecv_thread(args)
+            # for result in results:
+            #     print(result.result())
+
+            if client_rank == 0:
+                permute = [2, 3, 4, 0, 1]
+                print(a_s[1][2])
+                print(b_s[1][0])
+                
+                print((a_s[1][2][0]-b_s[1][0][0])%q)
 
     timer.set_time_point("share_tras")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
         timer.currentlabel, global_rank, node.getTotalDataSent(),
         node.getTotalDataRecv()))
-    
+
     print(timer)
     return
 

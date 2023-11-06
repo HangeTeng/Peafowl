@@ -34,7 +34,7 @@ class Node():
         self.totalDataSent = 0
         self.totalDataRecv = 0
         self.is_server = is_server
-        self.STSenders = [None] * (global_comm.Get_size() - 1)
+        self.STSender = None
         self.STRecver = None
     
 
@@ -79,12 +79,11 @@ class Node():
         self.totalDataRecv += self.get_size_recursive(recv_data) / 1024 / 1024
         return recv_data
     
-    def STinit(self,size=None, permutes=None, p=1<<128, ios_threads = 4):
+    def STinit(self,size=None, permute=None, p=1<<128, ios_threads = 4):
         if self.is_server:
-            if size is None or permutes is None:
+            if size is None or permute is None:
                 raise ValueError("Invalid: missing size or permute")
-            for i in range(len(permutes)):
-                self.STSenders[i] = Sender(size=size, permute=permutes[i], p=p, ios_threads = ios_threads)
+            self.STSender = Sender(size=size, permute=permute, p=p, ios_threads = ios_threads)
         else:
             self.STRecver = Receiver(ios_threads = ios_threads)
 
@@ -108,10 +107,10 @@ class Node():
         # result = self.STSender.run(size=size,
         if port_mode:
             all_ip = Sip +":"+str(port + tag)
-            STSender = self.STSenders[dset_rank]
+            STSender = self.STSender
         else:
             all_ip = Sip +":"+str(port+ dset_rank )
-            STSender = self.STSenders[dset_rank]
+            STSender = self.STSender
         result = STSender.run(size=size,
                         sessionHint=sessionHint,
                         p=p,
@@ -168,15 +167,13 @@ class Node():
 
     def getTotalDataSent(self):
         totalDataSent = self.totalDataSent
-        for STSender in self.STSenders:
-            totalDataSent += STSender.getTotalDataSent() / 1024 / 1024 if STSender is not None else 0
+        totalDataSent += self.STSender.getTotalDataSent() / 1024 / 1024 if self.STSender is not None else 0
         totalDataSent += self.STRecver.getTotalDataSent() / 1024 / 1024 if self.STRecver is not None else 0
         return totalDataSent
     
     def getTotalDataRecv(self):
         totalDataRecv = self.totalDataRecv
-        for STSender in self.STSenders:
-            totalDataRecv += STSender.getTotalDataRecv() / 1024 / 1024 if STSender is not None else 0
+        totalDataRecv += self.STSender.getTotalDataRecv() / 1024 / 1024 if self.STSender is not None else 0
         totalDataRecv += self.STRecver.getTotalDataRecv() / 1024 / 1024 if self.STRecver is not None else 0
         return totalDataRecv
 
@@ -238,3 +235,86 @@ class Node():
             intersection_indices.append(indices)
 
         return intersection_indices, length_intersection
+    
+class STNode():
+    def __init__(self, is_server):
+        self.totalDataSent = 0
+        self.totalDataRecv = 0
+        self.is_server = is_server
+        self.STSender = None
+        self.STRecver = None
+    
+    def STinit(self,size=None, permute=None, p=1<<128, ios_threads = 4):
+        if self.is_server:
+            if size is None or permute is None:
+                raise ValueError("Invalid: missing size or permute")
+            self.STSender= Sender(size=size, permute=permute, p=p, ios_threads = ios_threads)
+        else:
+            self.STRecver = Receiver(ios_threads = ios_threads)
+
+    # @timer
+    def STsend(self,
+               size,
+               dset_rank,
+               tag=0,
+               p=1 << 128,
+               Sip="127.0.0.1",
+               port = 40280,
+               ot_type=1,
+               num_threads=2,
+               port_mode = True,):
+        sessionHint = str(tag) 
+        # result = self.STSender.run(size=size,
+        if port_mode:
+            all_ip = Sip +":"+str(port + tag)
+            STSender = self.STSender
+        else:
+            all_ip = Sip +":"+str(port+ dset_rank )
+            STSender = self.STSender
+        result = STSender.run(size=size,
+                        sessionHint=sessionHint,
+                        p=p,
+                        Sip=all_ip,
+                        ot_type=ot_type,
+                        num_threads=num_threads)
+        return result
+
+    # @timer
+    def STrecv(self,
+               size,
+               dset_rank,
+               tag=0,
+               p=1 << 128,
+               Sip="127.0.0.1",
+               port = 40280,
+               ot_type=1,
+               num_threads=2,
+               port_mode = True,):
+        sessionHint = str(tag)
+        
+        if port_mode:
+            all_ip = Sip +":"+str(port + tag)
+            STRecver = self.STRecver
+        else:
+            all_ip = Sip +":"+str(port + dset_rank)
+            STRecver = self.STRecver
+        result = STRecver.run(size=size,
+                            sessionHint=sessionHint,
+                            p=p,
+                            Sip=all_ip,
+                            ot_type=ot_type,
+                            num_threads=num_threads)
+        return result[0],result[1]
+    
+    def getTotalDataSent(self):
+        totalDataSent = self.totalDataSent
+        totalDataSent += self.STSender.getTotalDataSent() / 1024 / 1024 if self.STSender is not None else 0
+        totalDataSent += self.STRecver.getTotalDataSent() / 1024 / 1024 if self.STRecver is not None else 0
+        return totalDataSent
+    
+    def getTotalDataRecv(self):
+        totalDataRecv = self.totalDataRecv
+        totalDataRecv += self.STSender.getTotalDataRecv() / 1024 / 1024 if self.STSender is not None else 0
+        totalDataRecv += self.STRecver.getTotalDataRecv() / 1024 / 1024 if self.STRecver is not None else 0
+        return totalDataRecv
+    

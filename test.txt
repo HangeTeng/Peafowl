@@ -1,104 +1,24 @@
 Timer unit: 1e-09 s
 
-Total time: 0.0194949 s
-File: /home/ubuntu/mSAID/test.py
-Function: main at line 133
+Total time: 11.6852 s
+File: /home/mSAID/test.py
+Function: main at line 274
 
 Line #      Hits         Time  Per Hit   % Time  Line Contents
 ==============================================================
-   133                                           def main():
-   134         1       1062.0   1062.0      0.0      import numpy as np
-   135                                               # shprg
-   136         1        230.0    230.0      0.0      n = 2
-   137         1        191.0    191.0      0.0      EQ = 128
-   138         1        181.0    181.0      0.0      EP = 64
-   139         1       1012.0   1012.0      0.0      q = 2**EQ
-   140         1        551.0    551.0      0.0      p = 2**EP
-   141         1       6291.0   6291.0      0.0      seedA = bytes(0x355678)
-   142                                           
-   143                                               # encoder
-   144         1        190.0    190.0      0.0      precision_bits = 16
-   145                                           
-   146                                               # Communicator
-   147         1       1042.0   1042.0      0.0      global_comm = MPI.COMM_WORLD
-   148         1       5831.0   5831.0      0.0      global_rank = global_comm.Get_rank()
-   149         1       1172.0   1172.0      0.0      global_size = global_comm.Get_size()
-   150                                           
-   151         1       8156.0   8156.0      0.0      global_grp = global_comm.Get_group()
-   152         1       4288.0   4288.0      0.0      client_grp = global_grp.Excl([global_size - 1])
-   153         1    5038957.0    5e+06     25.8      client_comm = global_comm.Create(client_grp)
-   154         1       1432.0   1432.0      0.0      client_rank = None if client_comm == MPI.COMM_NULL else client_comm.Get_rank(
-   155                                               )
-   156         1        862.0    862.0      0.0      client_size = client_grp.Get_size()
-   157         1        170.0    170.0      0.0      is_server = False
-   158         1        471.0    471.0      0.0      if global_rank == global_size - 1:
-   159                                                   is_server = True
-   160         1        190.0    190.0      0.0      server_rank = global_size - 1
-   161                                           
-   162                                               # thread
-   163         1        331.0    331.0      0.0      max_worker = 10 * client_size
-   164         1        311.0    311.0      0.0      server_max_worker = max_worker * client_size
-   165         1        220.0    220.0      0.0      num_threads = 1
-   166         1        210.0    210.0      0.0      is_server = False
-   167         1        401.0    401.0      0.0      if global_rank == global_size - 1:
-   168                                                   is_server = True
-   169                                           
-   170                                               
-   171                                           
-   172                                           
-   173         1       1062.0   1062.0      0.0      STSenders = [None] * (global_comm.Get_size() - 1)
-   174         1        231.0    231.0      0.0      STRecvers = [None]
-   175                                           
-   176                                           
-   177                                           
-   178         1        221.0    221.0      0.0      n = 1
-   179         1        271.0    271.0      0.0      sub_examples = 10000
-   180         1        150.0    150.0      0.0      port = 30000
-   181                                           
-   182         1       1562.0   1562.0      0.0      import random
-   183                                           
-   184         1        361.0    361.0      0.0      if is_server:
-   185                                                   permutes = []
-   186                                                   for _ in range(client_size):
-   187                                                       random.seed(1)
-   188                                                       all_indices = list(range(sub_examples))
-   189                                                       random.shuffle(all_indices)
-   190                                                       permutes.append(all_indices)
-   191                                                   STinit(is_server,STSenders,STRecvers,size=sub_examples,permutes=permutes,p=q)
-   192                                                   # print(node.STSenders)
-   193                                                   # print(permutes)
-   194                                               else:
-   195         1     350416.0 350416.0      1.8          STinit(is_server,STSenders,STRecvers)
-   196         1        240.0    240.0      0.0          pass
-   197                                           
-   198                                               
-   199         1       1493.0   1493.0      0.0      import os
-   200         1      12955.0  12955.0      0.1      os.environ['RDMAV_FORK_SAFE'] = '1'
-   201         1   13090319.0    1e+07     67.1      from concurrent.futures import ProcessPoolExecutor
-   202         1     739814.0 739814.0      3.8      executor = ProcessPoolExecutor(max_workers=server_max_worker)
-   203                                           
-   204         1       1412.0   1412.0      0.0      from functools import partial
-   205                                               
-   206         1        211.0    211.0      0.0      if is_server:
-   207                                                   all_deltas = np.empty((client_size, client_size, sub_examples, n),
-   208                                                                           dtype=object)
-   209                                                       
-   210                                                   task_args = [(all_deltas,sub_examples,port,num_threads, rank, dset_rank, input_dim)
-   211                                                                   for input_dim in range(n)
-   212                                                                   for dset_rank in range(client_size)
-   213                                                                   for rank in range(client_size)]
-   214                                                   results = list(executor.map(partial(STsend_thread, STSenders=STSenders), task_args))
-   215                                                   print(all_deltas[0,1,0,:])
-   216                                           
-   217                                               else:
-   218         1     161662.0 161662.0      0.8          a_s = np.empty((client_size, sub_examples, n), dtype=object)
-   219         1      58750.0  58750.0      0.3          b_s = np.empty((client_size, sub_examples, n), dtype=object)
-   220                                           
-   221                                           
-   222                                                   # task_args = [(sub_examples, client_rank,server_rank, port,num_threads, STRecvers,dset_rank, input_dim)
-   223                                                   #                 for input_dim in range(n)
-   224                                                   #                 for dset_rank in range(client_size)
-   225                                                   #                 ]
-   226                                                   
-   227                                                   # results = list(executor.map(STrecv_thread, task_args))
+   274                                           def main():
+   275         1       9400.0   9400.0      0.0      rank = MPI.COMM_WORLD.Get_rank()
+   276         1       1700.0   1700.0      0.0      import os
+   277         1      17900.0  17900.0      0.0      os.environ['RDMAV_FORK_SAFE'] = '1'
+   278         1    9508700.0    1e+07      0.1      import concurrent.futures
+   279         2        1e+10    6e+09     99.8      with concurrent.futures.ProcessPoolExecutor() as executor:
+   280         1       1100.0   1100.0      0.0          if rank == 0:
+   281                                                       task_args = [(str(i), Sip+":"+str(i+port)) for i in range(10)]
+   282                                                       executor.map(rec_th,  task_args)
+   283                                                       # print(a[0][-1])
+   284                                                       # print(a[1][-1])
+   285                                                   else:
+   286         1      16400.0  16400.0      0.0              task_args = [(str(i), Sip+":"+str(i+port)) for i in range(10)]
+   287         1   12796900.0    1e+07      0.1              executor.map(sen_th,  task_args)
+   288                                                       # print(a[0])
 

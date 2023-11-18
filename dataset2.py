@@ -59,8 +59,8 @@ def lsvm_gen_split(
 if __name__ == '__main__':
     import subprocess
     
-    for sub_examples in [5000]:
-        examples = sub_examples * 6 // 5
+    for sub_examples in [50]:
+        examples = sub_examples * 10 // 9
         for sub_features in [1]:#[500]+[2000 * i for i in range(1,5)]:
             for nodes in [5]:
                 features = nodes * sub_features
@@ -68,7 +68,7 @@ if __name__ == '__main__':
                     features = features,
                     nodes = nodes,
                     sub_examples = sub_examples)
-                subprocess.run("timeout 200 mpiexec -n {} python3 main2_.py {} {}".format(nodes + 1, examples, features), shell=True)
+                subprocess.run("timeout 200 mpiexec -n {} python3 main2_.py {} {}".format(nodes + 1, sub_examples, features), shell=True)
 
 
 

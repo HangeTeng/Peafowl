@@ -72,7 +72,7 @@ def STsend_thread(args):
         port = port,
         # port_mode=False,
         num_threads = num_threads)
-    return delta
+    return delta, stnode.getTotalDataSent(), stnode.getTotalDataRecv()
     
 def STrecv_thread(args):
     is_server, sub_examples, p, port, num_threads, client_rank, dset_rank, input_dim = args
@@ -87,20 +87,20 @@ def STrecv_thread(args):
             port = port,
             # port_mode=False,
             num_threads = num_threads)
-    return a,b
+    return a,b, stnode.getTotalDataSent(), stnode.getTotalDataRecv()
 
 
 
 def main():
     # dataset
     arguments = sys.argv[1:]
-    examples = int(arguments[0])
+    sub_examples = int(arguments[0])
     features = int(arguments[1])
     chunk = 500
 
     # sub_dataset
     nodes = MPI.COMM_WORLD.Get_size() - 1
-    sub_examples = examples * 5 // 6
+    examples = sub_examples * 10 // 9
     sub_features = features // nodes
     targets_rank = 0
     target_length = 1
@@ -108,15 +108,15 @@ def main():
 
     # output
     file = open(
-        "./data/log/poc2_SVM_{}_{}_log_{}.txt".format(examples, features,
+        "./data/log/poc2_SVM_{}_{}_log_{}.txt".format(sub_examples, features,
                                                       nodes), 'a')
     sys.stdout = file
-    sys.stdout = sys.__stdout__
+    # sys.stdout = sys.__stdout__
 
     secret_key = "secret_key"
 
     # shprg
-    n = 2
+    n = 8
     m = sub_features + target_length
     EQ = 128
     EP = 64
@@ -214,9 +214,9 @@ def main():
 
     # return
 
-    n = 4
+    # n = 4
     random.seed(1)
-    port = 20000 + random.randint(1, 10000)
+    port = 20000 + random.randint(1, 10000) #! port占用 
     # share_tras
     if is_server:
         all_deltas = np.empty((client_size, client_size, sub_examples, n),
@@ -231,13 +231,16 @@ def main():
             for i in range(len(task_args)):
                 # print(task_args[i][-3:])
                 rank, dset_rank, input_dim = task_args[i][-3:]
-                all_deltas[rank, dset_rank, :, input_dim] = results[i]
+                if results[i] is not None:
+                    all_deltas[rank, dset_rank, :, input_dim], datasent, datarecv = results[i]
+                    node.totalDataSent += datasent
+                    node.totalDataRecv += datarecv
         # print(results)
         # for args in task_args:
         #     STsend_thread(args)
         # for result in results:
         #     print(result.result())
-        print(all_deltas[0,1,0])
+        # print(all_deltas[0,1,0])
     else:
         a_s = np.empty((client_size, sub_examples, n), dtype=object)
         b_s = np.empty((client_size, sub_examples, n), dtype=object)
@@ -251,18 +254,20 @@ def main():
             for i in range(len(task_args)):
                 dset_rank, input_dim = task_args[i][-2:]
                 if results[i] is not None:
-                    a_s[dset_rank, :,input_dim],b_s[dset_rank, :, input_dim] = results[i]
+                    a_s[dset_rank, :,input_dim],b_s[dset_rank, :, input_dim], datasent,datarecv = results[i]
+                    node.totalDataSent += datasent
+                    node.totalDataRecv += datarecv
             # for args in task_args:
             #     STrecv_thread(args)
             # for result in results:
             #     print(result.result())
 
-            if client_rank == 0:
-                permute = [2, 3, 4, 0, 1]
-                print(a_s[1][2])
-                print(b_s[1][0])
+            # if client_rank == 0:
+            #     permute = [2, 3, 4, 0, 1]
+            #     print(a_s[1][2])
+            #     print(b_s[1][0])
                 
-                print((a_s[1][2][0]-b_s[1][0][0])%q)
+            #     print((a_s[1][2][0]-b_s[1][0][0])%q)
 
     timer.set_time_point("share_tras")
     print("{}: Rank {} - send: {:.4f} MB, recv: {:.4f} MB".format(
@@ -270,7 +275,7 @@ def main():
         node.getTotalDataRecv()))
 
     print(timer)
-    return
+    # return
 
     #* encrypted ID
     if is_server:

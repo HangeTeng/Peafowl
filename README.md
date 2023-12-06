@@ -7,8 +7,9 @@ This code and following instruction is construct on Ubuntu 20.04, with g++ 9.4 a
 ## Install Project and Dependencies
 Download the project code and the dependent libraries libOTe and cryptoTools.
 ```shell
-git clone 
+git clone https://github.com/HangeTeng/libSSS
 ```
+Install the libSSS according to the README in the libSSS repository.
 
 Download some other dependencies
 ```shell

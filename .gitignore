@@ -8,3 +8,5 @@ src/utils/hprg/*.npy
 *.npy
 *.btr
 *.pyc
+*.so
+*.lprof

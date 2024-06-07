@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,-soname,lwr_cpp.cpython-38-x86_64-linux-gnu.so -o lwr_cpp.cpython-38-x86_64-linux-gnu.so CMakeFiles/lwr_cpp.dir/lwr.cpp.o 

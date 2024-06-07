@@ -8,7 +8,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import numpy as np
-from lwr import lwr_128_64 as lwr
+from lwr_cpp import lwr_128_64 as lwr
 
 from line_profiler import LineProfiler
 

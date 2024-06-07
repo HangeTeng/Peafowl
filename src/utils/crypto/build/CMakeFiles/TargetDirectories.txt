@@ -1,0 +1,4 @@
+/root/Peafowl/src/utils/crypto/build/CMakeFiles/lwr_cpp.dir
+/root/Peafowl/src/utils/crypto/build/CMakeFiles/lwr.dir
+/root/Peafowl/src/utils/crypto/build/CMakeFiles/edit_cache.dir
+/root/Peafowl/src/utils/crypto/build/CMakeFiles/rebuild_cache.dir

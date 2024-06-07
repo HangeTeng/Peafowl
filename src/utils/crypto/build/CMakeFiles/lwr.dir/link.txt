@@ -1,0 +1,1 @@
+/usr/lib/nvidia-cuda-toolkit/bin/g++ -fPIC -shared -Wl,-soname,lwr.cpython-38-x86_64-linux-gnu.so -o lwr.cpython-38-x86_64-linux-gnu.so CMakeFiles/lwr.dir/lwr.cu.o  -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/lib/x86_64-linux-gnu/stubs" -L"/usr/lib/x86_64-linux-gnu"
